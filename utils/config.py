@@ -40,11 +40,6 @@ class Config:
         return os.getenv('REDSHIFT_PASSWORD')
     
     @property
-    def openai_api_key(self) -> Optional[str]:
-        """Get OpenAI API key from environment."""
-        return os.getenv('OPENAI_API_KEY')
-    
-    @property
     def aws_access_key_id(self) -> Optional[str]:
         """Get AWS access key ID from environment."""
         return os.getenv('AWS_ACCESS_KEY_ID')
@@ -58,6 +53,31 @@ class Config:
     def aws_region(self) -> str:
         """Get AWS region from environment."""
         return os.getenv('AWS_REGION', 'us-west-2')
+    
+    @property
+    def openai_api_key(self) -> Optional[str]:
+        """Get OpenAI API key from environment."""
+        return os.getenv('OPENAI_API_KEY')
+    
+    @property
+    def confluence_url(self) -> Optional[str]:
+        """Get Confluence URL from environment."""
+        return os.getenv('CONFLUENCE_URL')
+    
+    @property
+    def confluence_username(self) -> Optional[str]:
+        """Get Confluence username from environment."""
+        return os.getenv('CONFLUENCE_USERNAME')
+    
+    @property
+    def confluence_api_token(self) -> Optional[str]:
+        """Get Confluence API token from environment."""
+        return os.getenv('CONFLUENCE_API_TOKEN')
+    
+    @property
+    def confluence_space_key(self) -> Optional[str]:
+        """Get Confluence space key from environment."""
+        return os.getenv('CONFLUENCE_SPACE_KEY')
     
     def validate_redshift_config(self) -> bool:
         """Validate that all required Redshift configuration is present."""
@@ -76,6 +96,22 @@ class Config:
             self.aws_secret_access_key
         ]
         return all(var is not None and var != '' for var in required_vars)
+    
+    def validate_ai_config(self) -> bool:
+        """Validate that AI configuration is present."""
+        return self.openai_api_key is not None and self.openai_api_key != ''
+    
+    def validate_confluence_config(self) -> bool:
+        """Validate that all required Confluence configuration is present."""
+        required_vars = [
+            self.confluence_url,
+            self.confluence_username,
+            self.confluence_api_token,
+            self.confluence_space_key
+        ]
+        return all(var is not None and var != '' for var in required_vars)
+    
+
 
 
 # Global config instance
