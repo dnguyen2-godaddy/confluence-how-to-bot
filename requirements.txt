@@ -2,6 +2,7 @@ pandas==2.3.1
 redshift_connector==2.1.8
 python-dotenv==1.1.1
 boto3==1.39.17
+botocore==1.39.17
 requests==2.32.4
 openai==1.12.0
 atlassian-python-api==3.41.14

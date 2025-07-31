@@ -26,19 +26,18 @@ class QuickSightManager:
                 raise ValueError("AWS configuration is incomplete. Please check your .env file for AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.")
             
             # Initialize AWS clients
-            self.quicksight = boto3.client(
-                'quicksight',
-                region_name=config.aws_region,
-                aws_access_key_id=config.aws_access_key_id,
-                aws_secret_access_key=config.aws_secret_access_key
-            )
+            client_kwargs = {
+                'region_name': config.aws_region,
+                'aws_access_key_id': config.aws_access_key_id,
+                'aws_secret_access_key': config.aws_secret_access_key
+            }
             
-            sts_client = boto3.client(
-                'sts',
-                region_name=config.aws_region,
-                aws_access_key_id=config.aws_access_key_id,
-                aws_secret_access_key=config.aws_secret_access_key
-            )
+            # Add session token if available (for temporary credentials)
+            if hasattr(config, 'aws_session_token') and config.aws_session_token:
+                client_kwargs['aws_session_token'] = config.aws_session_token
+            
+            self.quicksight = boto3.client('quicksight', **client_kwargs)
+            sts_client = boto3.client('sts', **client_kwargs)
             
             self.account_id = sts_client.get_caller_identity()['Account']
             logger.info(f"Initialized QuickSight manager for account: {self.account_id}")
@@ -46,7 +45,26 @@ class QuickSightManager:
         except Exception as e:
             logger.error(f"Failed to initialize QuickSight manager: {e}")
             raise
-    
+
+    def list_dashboards(self) -> List[Dict[str, Any]]:
+        """
+        List all dashboards in the AWS account.
+        
+        Returns:
+            List of dashboard summary dictionaries
+        """
+        try:
+            response = self.quicksight.list_dashboards(AwsAccountId=self.account_id)
+            dashboards = response.get('DashboardSummaryList', [])
+            logger.info(f"Found {len(dashboards)} dashboards")
+            return dashboards
+        except ClientError as e:
+            logger.error(f"Failed to list dashboards: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to list dashboards: {e}")
+            raise
+
     def create_redshift_data_source(self, data_source_id: str = None) -> str:
         """
         Create a Redshift data source in QuickSight.

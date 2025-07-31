@@ -7,7 +7,6 @@ from utils.config import config
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
 def run_scorecard_query():
     """Execute the scorecard query and return results."""
     logger.info("Script started")

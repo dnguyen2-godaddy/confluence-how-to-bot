@@ -1,0 +1,12 @@
+.env
+# Environment and credential files
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+# AWS credentials
+.aws/
+# Other sensitive files
+secrets/
+private/

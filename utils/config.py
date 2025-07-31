@@ -50,6 +50,11 @@ class Config:
         return os.getenv('AWS_SECRET_ACCESS_KEY')
     
     @property
+    def aws_session_token(self) -> Optional[str]:
+        """Get AWS session token from environment (for temporary credentials)."""
+        return os.getenv('AWS_SESSION_TOKEN')
+    
+    @property
     def aws_region(self) -> str:
         """Get AWS region from environment."""
         return os.getenv('AWS_REGION', 'us-west-2')

@@ -48,3 +48,20 @@ logs/
 # Database
 *.db
 *.sqlite3
+
+# Generated Reports & Analysis Files
+*_analysis_*.json
+dashboard_analysis_*.json
+redshift_analysis_*.json
+
+# AWS Credentials & Config
+.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Temporary & Debug Files
+debug_*.py
+test_*.py
+temp_*.py
