@@ -39,6 +39,26 @@ class Config:
         """Get Redshift password from environment."""
         return os.getenv('REDSHIFT_PASSWORD')
     
+    @property
+    def openai_api_key(self) -> Optional[str]:
+        """Get OpenAI API key from environment."""
+        return os.getenv('OPENAI_API_KEY')
+    
+    @property
+    def aws_access_key_id(self) -> Optional[str]:
+        """Get AWS access key ID from environment."""
+        return os.getenv('AWS_ACCESS_KEY_ID')
+    
+    @property
+    def aws_secret_access_key(self) -> Optional[str]:
+        """Get AWS secret access key from environment."""
+        return os.getenv('AWS_SECRET_ACCESS_KEY')
+    
+    @property
+    def aws_region(self) -> str:
+        """Get AWS region from environment."""
+        return os.getenv('AWS_REGION', 'us-west-2')
+    
     def validate_redshift_config(self) -> bool:
         """Validate that all required Redshift configuration is present."""
         required_vars = [
@@ -46,6 +66,14 @@ class Config:
             self.redshift_database,
             self.redshift_user,
             self.redshift_password
+        ]
+        return all(var is not None and var != '' for var in required_vars)
+    
+    def validate_aws_config(self) -> bool:
+        """Validate that all required AWS configuration is present."""
+        required_vars = [
+            self.aws_access_key_id,
+            self.aws_secret_access_key
         ]
         return all(var is not None and var != '' for var in required_vars)
 
