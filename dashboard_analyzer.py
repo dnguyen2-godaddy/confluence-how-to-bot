@@ -453,7 +453,7 @@ Create documentation that matches the professional style and depth of the Cash D
         return None
 
 
-def publish_to_confluence(doc_file: str, title: str = None) -> bool:
+def publish_to_confluence(doc_file: str, title: str = None, images: list = None) -> bool:
     """Publish documentation to Confluence."""
     try:
         from utils.confluence_uploader import ConfluenceUploader
@@ -479,11 +479,12 @@ def publish_to_confluence(doc_file: str, title: str = None) -> bool:
         # Initialize Confluence uploader
         uploader = ConfluenceUploader()
         
-        # Upload to Confluence
+        # Upload to Confluence with images
         page_url = uploader.upload_content(
             title=title,
             content=content,
-            content_type='markdown'
+            content_type='markdown',
+            images=images or []
         )
         
         if page_url:
@@ -533,17 +534,194 @@ def find_recent_images():
     return [img[0] for img in recent_images[:10]]
 
 
+def analyze_multiple_images(image_paths: list) -> dict:
+    """Analyze multiple dashboard images and organize results."""
+    results = {}
+    
+    for i, image_path in enumerate(image_paths, 1):
+        print(f"\n📸 Analyzing image {i}/{len(image_paths)}: {os.path.basename(image_path)}")
+        
+        analysis_file = analyze_dashboard_image(image_path)
+        if analysis_file:
+            results[image_path] = analysis_file
+            print(f"✅ Analysis {i} completed")
+        else:
+            print(f"❌ Analysis {i} failed")
+    
+    return results
+
+
+def generate_multi_dashboard_documentation(analysis_results: dict) -> Optional[str]:
+    """Generate consolidated documentation from multiple dashboard analyses."""
+    if not analysis_results:
+        return None
+    
+    try:
+        print("🤖 Generating comprehensive multi-dashboard documentation...")
+        
+        # Read all analysis files
+        all_analyses = []
+        image_references = []
+        
+        for image_path, analysis_file in analysis_results.items():
+            with open(analysis_file, 'r', encoding='utf-8') as f:
+                analysis_content = f.read()
+                all_analyses.append(f"**Analysis of {os.path.basename(image_path)}:**\n{analysis_content}")
+                image_references.append(f"- {os.path.basename(image_path)}: {image_path}")
+        
+        # Create consolidated analysis prompt
+        consolidated_prompt = f"""
+You are a technical writer specializing in business intelligence dashboard documentation. Create comprehensive documentation covering multiple dashboard views/tabs following GoDaddy's professional format.
+
+**MULTIPLE DASHBOARD ANALYSES:**
+{chr(10).join(all_analyses)}
+
+**IMAGE REFERENCES:**
+{chr(10).join(image_references)}
+
+**CREATE CONSOLIDATED DOCUMENTATION:**
+
+**Objective**
+
+[Write a comprehensive paragraph explaining the goal of this multi-view dashboard system, what complete overview it provides, and what performance areas it tracks across all views.]
+
+**Dashboard Overview**
+
+The [Dashboard Name] in QuickSight has the following main views:
+[List all major views/tabs found across the images]
+
+**Multi-View Analysis**
+
+[Organize information from all images into coherent sections, identifying relationships between views]
+
+**Detailed Overview of Each View**
+
+[For each view/tab identified, create detailed sections covering all visualizations and functionality]
+
+**Consolidated Metrics Reported**
+
+[Combine all metrics from all views with comprehensive explanations]
+
+**Navigation and How-tos**
+
+[Include instructions for navigating between views and using all dashboard features]
+
+**WRITING GUIDELINES:**
+- Synthesize information from all dashboard images
+- Identify relationships and connections between different views
+- Organize content logically across the full dashboard system
+- Maintain professional GoDaddy documentation style
+- Reference specific images when describing features
+- Create a unified, comprehensive guide covering all dashboard functionality
+"""
+        
+        # Generate documentation using Bedrock
+        bedrock = boto3.client(
+            'bedrock-runtime',
+            region_name=config.aws_region,
+            aws_access_key_id=config.aws_access_key_id,
+            aws_secret_access_key=config.aws_secret_access_key,
+            aws_session_token=getattr(config, 'aws_session_token', None)
+        )
+        
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": consolidated_prompt
+                    }
+                ]
+            }
+        ]
+        
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 6000,  # Increased for multiple images
+            "messages": messages,
+            "temperature": 0.1
+        }
+        
+        response = bedrock.invoke_model(
+            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
+            body=json.dumps(body),
+            contentType='application/json'
+        )
+        
+        response_body = json.loads(response['body'].read())
+        documentation_text = response_body['content'][0]['text']
+        
+        # Generate filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        doc_filename = f"outputs/multi_dashboard_howto_{timestamp}.md"
+        
+        # Ensure outputs directory exists
+        os.makedirs("outputs", exist_ok=True)
+        
+        # Add image references section
+        image_refs_section = f"""
+**Source Dashboard Screenshots:**
+{chr(10).join(image_references)}
+
+"""
+        
+        # Create comprehensive documentation file
+        with open(doc_filename, 'w', encoding='utf-8') as f:
+            f.write(image_refs_section)
+            f.write(documentation_text)
+            f.write(f"\n\n---\n\n")
+            f.write(f"**📁 Source Images:** {len(analysis_results)} dashboard screenshots\n")
+            f.write(f"**📄 Analysis Sources:** {', '.join([os.path.basename(f) for f in analysis_results.values()])}\n")
+            f.write(f"**📅 Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            ai_model = "GPT-4 Omni (OpenAI)" if config.ai_provider == 'openai' else "Claude 3.5 Sonnet (AWS Bedrock)"
+            f.write(f"**🤖 AI Model:** {ai_model}\n\n")
+            f.write("*Generated by QuickSight Dashboard Image Analyzer - Multi-Dashboard Analysis*\n")
+        
+        logger.info(f"✅ Multi-dashboard documentation generated: {doc_filename}")
+        print(f"📚 Comprehensive documentation saved: {doc_filename}")
+        
+        return doc_filename
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to generate multi-dashboard documentation: {e}")
+        print(f"❌ Multi-dashboard documentation generation failed: {e}")
+        return None
+
+
 def upload_dashboard_image():
     """Interactive dashboard image upload and analysis."""
-    print("🖼️ Upload Dashboard Screenshot")
+    print("🖼️ QuickSight Dashboard Image Analyzer")
     print("=" * 50)
-    print("📋 Upload a QuickSight dashboard screenshot for AI analysis")
+    print("📋 Upload QuickSight dashboard screenshots for AI analysis")
     print()
     print("✅ Supported formats: PNG, JPG, JPEG, GIF, WebP, BMP")
-    print("✅ Maximum file size: 10MB")
+    print("✅ Maximum file size: 10MB per image")
     print("✅ AI-powered business insights and recommendations")
     print("✅ Detailed visualization breakdown and technical assessment")
     print()
+    
+    # Show analysis options
+    print("📊 Analysis Options:")
+    print("1. 📸 Single Dashboard Analysis")
+    print("2. 📷 Multiple Dashboard Analysis (tabs, views, etc.)")
+    print("3. ❌ Exit")
+    print()
+    
+    analysis_choice = input("Choose analysis type (1-3): ").strip()
+    
+    if analysis_choice == '3':
+        print("👋 Goodbye!")
+        return
+    elif analysis_choice == '2':
+        upload_multiple_images()
+        return
+    elif analysis_choice != '1':
+        print("❌ Invalid choice. Defaulting to single image analysis.")
+    
+    # Single image analysis (existing functionality)
+    print("\n🖼️ Single Dashboard Analysis")
+    print("=" * 40)
     
     # Show helpful tips
     print("💡 Tips for best results:")
@@ -571,6 +749,7 @@ def upload_dashboard_image():
     print("   • Drag & drop file path from Finder")
     print()
     
+    # Single image upload loop
     while True:
         if recent_images:
             print("📎 Choose an option:")
@@ -642,8 +821,8 @@ def upload_dashboard_image():
                     custom_title = input("📝 Enter custom title (or press Enter for auto-generated): ").strip()
                     title = custom_title if custom_title else None
                     
-                    # Publish to Confluence
-                    success = publish_to_confluence(doc_file, title)
+                    # Publish to Confluence with dashboard image
+                    success = publish_to_confluence(doc_file, title, [image_path])
                     if success:
                         print("🚀 Complete workflow finished successfully!")
                     else:
@@ -665,6 +844,126 @@ def upload_dashboard_image():
             print("\n💡 Please try again with a valid image file")
             
         print()  # Add spacing
+
+
+def upload_multiple_images():
+    """Interactive multiple dashboard image upload and analysis."""
+    print("\n📷 Multiple Dashboard Analysis")
+    print("=" * 40)
+    print("📋 Upload multiple dashboard screenshots for comprehensive analysis")
+    print()
+    print("💡 This is perfect for:")
+    print("   • Multi-tab dashboards (e.g., Scorecard + SLAs)")
+    print("   • Different dashboard views")
+    print("   • Complete dashboard system documentation")
+    print()
+    
+    # Show recent images for selection
+    recent_images = find_recent_images()
+    selected_images = []
+    
+    if recent_images:
+        print("📷 Recent image files found:")
+        for i, img_path in enumerate(recent_images, 1):
+            filename = os.path.basename(img_path)
+            print(f"   {i:2d}. {filename}")
+        print("    0. Add custom file path")
+        print("   99. Done selecting images")
+        print()
+        
+        while True:
+            print(f"📸 Currently selected: {len(selected_images)} images")
+            if selected_images:
+                for img in selected_images:
+                    print(f"   ✅ {os.path.basename(img)}")
+                print()
+            
+            choice = input("Choose image number (or 99 when done): ").strip()
+            
+            if choice == '99':
+                if len(selected_images) >= 2:
+                    break
+                else:
+                    print("❌ Please select at least 2 images for multi-dashboard analysis")
+                    continue
+            elif choice == '0':
+                custom_path = input("📁 Enter file path: ").strip()
+                if custom_path and os.path.exists(custom_path):
+                    selected_images.append(custom_path)
+                    print(f"✅ Added: {os.path.basename(custom_path)}")
+                else:
+                    print("❌ File not found")
+            elif choice.isdigit():
+                choice_num = int(choice)
+                if 1 <= choice_num <= len(recent_images):
+                    img_path = recent_images[choice_num - 1]
+                    if img_path not in selected_images:
+                        selected_images.append(img_path)
+                        print(f"✅ Added: {os.path.basename(img_path)}")
+                    else:
+                        print("⚠️ Image already selected")
+                else:
+                    print(f"❌ Invalid choice. Enter 1-{len(recent_images)}, 0, or 99")
+            else:
+                print("❌ Please enter a number")
+    else:
+        print("📁 No recent images found. Please enter file paths manually.")
+        while True:
+            if len(selected_images) >= 2:
+                done = input(f"📸 Currently selected: {len(selected_images)} images. Add more? (y/n): ").strip().lower()
+                if done == 'n':
+                    break
+            
+            img_path = input("📁 Enter image file path (or 'done' to finish): ").strip()
+            if img_path.lower() == 'done':
+                if len(selected_images) >= 2:
+                    break
+                else:
+                    print("❌ Please select at least 2 images")
+                    continue
+            
+            if os.path.exists(img_path):
+                selected_images.append(img_path)
+                print(f"✅ Added: {os.path.basename(img_path)}")
+            else:
+                print("❌ File not found")
+    
+    if len(selected_images) < 2:
+        print("❌ Need at least 2 images for multi-dashboard analysis")
+        return
+    
+    # Analyze multiple images
+    print(f"\n🚀 Starting analysis of {len(selected_images)} dashboard images...")
+    analysis_results = analyze_multiple_images(selected_images)
+    
+    if analysis_results:
+        print(f"\n🎉 Multi-Dashboard Analysis Complete!")
+        print(f"📊 Successfully analyzed {len(analysis_results)} images")
+        print()
+        
+        # Ask about documentation generation
+        print("📚 Documentation Options:")
+        print("1. 📝 Generate comprehensive multi-dashboard documentation")
+        print("2. 🔗 Generate documentation + publish to Confluence")
+        print("3. ⏭️  Skip documentation")
+        
+        doc_choice = input("Choose option (1-3): ").strip()
+        
+        if doc_choice in ['1', '2']:
+            doc_file = generate_multi_dashboard_documentation(analysis_results)
+            if doc_file and doc_choice == '2':
+                print("\n🔗 Publishing to Confluence...")
+                custom_title = input("📝 Enter custom title (or press Enter for auto-generated): ").strip()
+                title = custom_title if custom_title else None
+                success = publish_to_confluence(doc_file, title, selected_images)
+                if success:
+                    print("✅ Successfully published to Confluence!")
+                else:
+                    print("❌ Failed to publish to Confluence")
+        
+        print(f"\n🚀 Multi-dashboard analysis workflow complete!")
+    else:
+        print("❌ No images were successfully analyzed")
 
 
 def main():

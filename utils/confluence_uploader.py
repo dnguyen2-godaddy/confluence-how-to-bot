@@ -249,7 +249,54 @@ class ConfluenceUploader:
             logger.error(f"❌ Error updating page: {e}")
             return None
     
-    def upload_content(self, title: str, content: str, content_type: str = 'markdown') -> Optional[str]:
+    def upload_image(self, image_path: str, page_id: str) -> Optional[str]:
+        """Upload an image as an attachment to a Confluence page."""
+        try:
+            import mimetypes
+            
+            # Determine content type
+            content_type, _ = mimetypes.guess_type(image_path)
+            if not content_type:
+                content_type = 'application/octet-stream'
+            
+            # Prepare file for upload
+            filename = os.path.basename(image_path)
+            
+            with open(image_path, 'rb') as f:
+                files = {
+                    'file': (filename, f, content_type)
+                }
+                
+                headers = {
+                    'X-Atlassian-Token': 'no-check'
+                }
+                
+                url = f"{self.api_base}content/{page_id}/child/attachment"
+                
+                response = requests.post(
+                    url,
+                    files=files,
+                    headers=headers,
+                    auth=(self.username, self.api_token),
+                    timeout=30
+                )
+                
+                if response.status_code in [200, 201]:
+                    result = response.json()
+                    if 'results' in result and len(result['results']) > 0:
+                        attachment_id = result['results'][0]['id']
+                        # Return the attachment URL for embedding
+                        return f"/wiki/download/attachments/{page_id}/{filename}"
+                    return None
+                else:
+                    logger.error(f"Failed to upload image: {response.status_code} - {response.text}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Error uploading image {image_path}: {e}")
+            return None
+
+    def upload_content(self, title: str, content: str, content_type: str = 'markdown', images: list = None) -> Optional[str]:
         """Upload or update content to Confluence."""
         if not all([self.confluence_url, self.username, self.api_token, self.space_key]):
             print("❌ Confluence not properly configured")
@@ -275,9 +322,28 @@ class ConfluenceUploader:
                     content,
                     existing_page['version']['number']
                 )
+                page_id = existing_page['id']
             else:
                 print(f"✨ Creating new page: {title}")
                 page_url = self.create_page(title, content)
+                # Extract page ID from URL for image uploads
+                if page_url and '/pages/' in page_url:
+                    page_id = page_url.split('/pages/')[-1].split('/')[0]
+                else:
+                    page_id = None
+            
+            # Upload images if provided
+            if images and page_id:
+                print(f"📸 Uploading {len(images)} images...")
+                for image_path in images:
+                    if os.path.exists(image_path):
+                        image_url = self.upload_image(image_path, page_id)
+                        if image_url:
+                            print(f"✅ Uploaded: {os.path.basename(image_path)}")
+                        else:
+                            print(f"❌ Failed to upload: {os.path.basename(image_path)}")
+                    else:
+                        print(f"❌ Image not found: {image_path}")
             
             return page_url
             
