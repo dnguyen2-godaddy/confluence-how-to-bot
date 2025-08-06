@@ -30,19 +30,20 @@ def validate_image_file(image_path: str) -> tuple[bool, str]:
     if not image_path or not image_path.strip():
         return False, "❌ No image path provided"
     
-    image_path = image_path.strip().strip('"').strip("'")  # Clean quotes
+    # Clean path: remove quotes but preserve original Unicode characters for file access
+    original_path = image_path.strip().strip('"').strip("'")
     
-    if not os.path.exists(image_path):
-        return False, f"❌ Image file not found: {image_path}"
+    if not os.path.exists(original_path):
+        return False, f"❌ Image file not found: {original_path}"
     
     # Check file size (max 10MB for reasonable processing)
-    file_size = os.path.getsize(image_path)
+    file_size = os.path.getsize(original_path)
     if file_size > 10 * 1024 * 1024:  # 10MB
         return False, f"❌ Image file too large: {file_size / (1024*1024):.1f}MB (max 10MB)"
     
     # Check file extension
     valid_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'}
-    file_ext = os.path.splitext(image_path)[1].lower()
+    file_ext = os.path.splitext(original_path)[1].lower()
     if file_ext not in valid_extensions:
         return False, f"❌ Unsupported format: {file_ext}. Supported: {', '.join(valid_extensions)}"
     
@@ -513,7 +514,8 @@ def find_recent_images():
     common_paths = [
         os.path.expanduser("~/Desktop"),
         os.path.expanduser("~/Downloads"), 
-        os.path.expanduser("~/Pictures")
+        os.path.expanduser("~/Pictures"),
+        os.path.expanduser("~/dashboard-images")  # Add your dashboard images folder
     ]
     
     image_extensions = ['*.png', '*.jpg', '*.jpeg', '*.gif', '*.webp', '*.bmp']
