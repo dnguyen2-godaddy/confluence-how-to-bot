@@ -278,24 +278,11 @@ For each chart/visual, identify:
 
 def add_screenshot_references(documentation: str, image_path: str) -> str:
     """
-    Add screenshot reference information to documentation in professional format.
+    Add clean screenshot reference information to documentation.
     """
-    # Add clean reference note at the top
-    screenshot_note = f"""
-**Source Dashboard Screenshot:** {image_path}
-
-"""
-    
-    # Insert after the first section
-    lines = documentation.split('\n')
-    insert_index = 1
-    for i, line in enumerate(lines):
-        if line.startswith('**Objective**'):
-            insert_index = i
-            break
-    
-    lines.insert(insert_index, screenshot_note)
-    return '\n'.join(lines)
+    # For Confluence, we don't need to show file paths - images will be embedded
+    # Just return the documentation as-is since images are uploaded separately
+    return documentation
 
 
 def generate_dashboard_documentation(analysis_file: str, image_path: str) -> Optional[str]:
@@ -309,76 +296,84 @@ def generate_dashboard_documentation(analysis_file: str, image_path: str) -> Opt
         
         # Enhanced documentation prompt based on user's Cash Dash example
         documentation_prompt = f"""
-You are a technical writer specializing in business intelligence dashboard documentation. Create professional documentation following the exact format and style of GoDaddy's Cash Dash documentation.
+You are a technical writer specializing in business intelligence dashboard documentation. Create clean, professional documentation optimized for Confluence publishing.
 
-**DASHBOARD ANALYSIS:**
+**DASHBOARD ANALYSIS INPUT:**
 {analysis_content}
 
-**CREATE DOCUMENTATION FOLLOWING THIS EXACT STRUCTURE AND STYLE:**
+**FORMATTING REQUIREMENTS FOR CONFLUENCE:**
+
+**CRITICAL:** Do NOT use markdown # headings. Use only bold text for headings as shown below.
+
+**Output Format:**
 
 **Objective**
 
-[Write a clear, professional paragraph explaining the goal of this dashboard, what it provides overview of, and what performance it tracks. Be specific about business context and purpose. No emojis.]
+Write a clear, professional paragraph explaining the dashboard's purpose, business context, and strategic value. Focus on specific business outcomes and stakeholder benefits.
 
 **Dashboard Overview**
 
-The [Dashboard Name] in QuickSight has the following views:
-1. [View Name 1]
-2. [View Name 2] 
-3. [View Name 3]
-[etc.]
+The [Dashboard Name] provides comprehensive insights through multiple specialized views:
 
-For [Dashboard Name] in QuickSight, you can also navigate to [X] other additional views for additional insights:
-1. [Additional View 1]
-2. [Additional View 2]
-All these views are discussed in detail below.
+• **[View 1 Name]** - [Brief description of purpose and key metrics]
+• **[View 2 Name]** - [Brief description of purpose and key metrics]  
+• **[View 3 Name]** - [Brief description of purpose and key metrics]
 
-**New Additions, Features and Changes**
+**Key Features and Capabilities**
 
-[If this is an existing dashboard, note improvements. If new, describe key features.]
+1. **[Feature Name]** - [Detailed explanation including business value, technical specs, and usage guidelines]
 
-1. **Feature Name**: [Detailed explanation of what this feature does, how it works, and its business value. Include specific details about performance, timing, or technical specifications.]
+2. **[Feature Name]** - [Continue with specific functionality details and business benefits]
 
-2. **Feature Name**: [Continue with numbered list format. Be specific about functionality, comparison capabilities, and business benefits.]
+3. **[Feature Name]** - [Include any filtering, drill-down, or interactive capabilities]
 
-[Continue for all major features]
+**Detailed View Analysis**
 
-**Detailed Overview of Each View**
+**[View 1 Name]**
+[Comprehensive explanation of view purpose, metrics displayed, data sources, and business applications. Include specific numbers and calculations where visible.]
 
-**1. [View Name]**
+**[View 2 Name]**
+[Detailed analysis with focus on practical usage, key insights, and business decision support.]
 
-[Detailed paragraph explaining what this view shows, what performance metrics it tracks, and how it relates to business objectives. Include specific details about data sources, time periods, and calculation methods.]
+**[View 3 Name]**
+[Complete breakdown of functionality, metrics, and strategic value for users.]
 
-**Metrics Reported**
+**Key Metrics and Calculations**
 
-1. **Metric Name**: [Detailed explanation of what this metric measures, how it's calculated, any toggle options, and business significance. Include formulas where relevant.]
+• **[Metric 1]** - [Definition, calculation method, business significance, and typical ranges]
+• **[Metric 2]** - [Complete explanation with formulas and context]
+• **[Metric 3]** - [Include any special considerations or data refresh timing]
 
-2. **Metric Name**: [Continue with detailed explanations. Be specific about calculation methods, data sources, and business context.]
+**Navigation and Usage Guidelines**
 
-[Continue for all metrics]
+**Accessing Views**
+• Navigate between views using [specific instructions]
+• Apply filters through [detailed process]
+• Export data via [step-by-step guide]
 
-**How tos**
+**Best Practices**
+• Start analysis with [recommended approach]
+• Use filters to focus on [specific guidance]
+• Monitor key trends by [actionable steps]
 
-1. **How to [specific task]?**
-   - [Detailed step-by-step instructions with specific examples]
-   - [Include any restrictions, permissions, or special considerations]
+**Data and Technical Information**
 
-2. **[Next practical task]**
-   - [Step-by-step instructions]
-   - [Specific details about process or requirements]
+• **Update Frequency:** [Specify refresh schedule]
+• **Data Sources:** [List primary data connections]
+• **Historical Range:** [Available time periods]
+• **Export Options:** [Available formats and limitations]
 
-**WRITING GUIDELINES:**
-- Use professional, technical language similar to business documentation
-- Be specific with numbers, percentages, time periods, and technical details
-- Avoid emojis and casual language
-- Use numbered lists for features and steps
-- Use bold for feature names and important terms
-- Include exact metric definitions and calculation methods
-- Provide specific business context for each feature
-- Write in third person, professional tone
-- Include concrete examples where helpful
+**FORMATTING GUIDELINES:**
+- Use only bold text for headings (no # markdown symbols)
+- Use bullet points (•) for lists, not dashes (-)
+- Include specific numbers, percentages, and business metrics
+- Write in professional third person
+- Avoid emojis completely
+- Use **bold** for emphasis on key terms
+- Keep sentences clear and actionable
+- Include concrete examples and specific instructions
 
-Create documentation that matches the professional style and depth of the Cash Dash example.
+Create documentation that will display cleanly in Confluence with proper formatting and professional presentation.
         """
         
         # Initialize Bedrock client
@@ -571,50 +566,86 @@ def generate_multi_dashboard_documentation(analysis_results: dict) -> Optional[s
                 all_analyses.append(f"**Analysis of {os.path.basename(image_path)}:**\n{analysis_content}")
                 image_references.append(f"- {os.path.basename(image_path)}: {image_path}")
         
-        # Create consolidated analysis prompt
+        # Create consolidated analysis prompt with improved Confluence formatting
         consolidated_prompt = f"""
-You are a technical writer specializing in business intelligence dashboard documentation. Create comprehensive documentation covering multiple dashboard views/tabs following GoDaddy's professional format.
+You are a technical writer specializing in business intelligence dashboard documentation. Create clean, professional documentation for multiple dashboard views optimized for Confluence publishing.
 
 **MULTIPLE DASHBOARD ANALYSES:**
 {chr(10).join(all_analyses)}
 
-**IMAGE REFERENCES:**
-{chr(10).join(image_references)}
+**FORMATTING REQUIREMENTS FOR CONFLUENCE:**
 
-**CREATE CONSOLIDATED DOCUMENTATION:**
+**CRITICAL:** Use only bold text for headings. NO markdown # symbols. Follow this exact format for clean Confluence display.
+
+**Output Format:**
 
 **Objective**
 
-[Write a comprehensive paragraph explaining the goal of this multi-view dashboard system, what complete overview it provides, and what performance areas it tracks across all views.]
+Write a comprehensive paragraph explaining the purpose of this multi-view dashboard system, its business value, and strategic importance. Focus on specific outcomes for stakeholders.
 
 **Dashboard Overview**
 
-The [Dashboard Name] in QuickSight has the following main views:
-[List all major views/tabs found across the images]
+The [Dashboard System Name] provides comprehensive analytics through multiple specialized views:
 
-**Multi-View Analysis**
+• **[View 1 Name]** - [Purpose and key metrics covered]
+• **[View 2 Name]** - [Purpose and key metrics covered]
+• **[View 3 Name]** - [Purpose and key metrics covered]
 
-[Organize information from all images into coherent sections, identifying relationships between views]
+**System Architecture and Flow**
 
-**Detailed Overview of Each View**
+[Explain how the views work together, data relationships, and navigation flow between different dashboard components]
 
-[For each view/tab identified, create detailed sections covering all visualizations and functionality]
+**Detailed View Analysis**
 
-**Consolidated Metrics Reported**
+**[View 1 Name]**
+[Comprehensive analysis of functionality, metrics, visualizations, and business applications]
 
-[Combine all metrics from all views with comprehensive explanations]
+**[View 2 Name]**
+[Detailed breakdown of purpose, key insights, and practical usage guidelines]
 
-**Navigation and How-tos**
+**[View 3 Name]**
+[Complete explanation of features, data presentation, and decision support capabilities]
 
-[Include instructions for navigating between views and using all dashboard features]
+**Comprehensive Metrics Guide**
 
-**WRITING GUIDELINES:**
-- Synthesize information from all dashboard images
-- Identify relationships and connections between different views
-- Organize content logically across the full dashboard system
-- Maintain professional GoDaddy documentation style
-- Reference specific images when describing features
-- Create a unified, comprehensive guide covering all dashboard functionality
+• **[Metric Category 1]**
+  ○ [Metric Name] - [Definition, calculation, business significance]
+  ○ [Metric Name] - [Definition, calculation, business significance]
+
+• **[Metric Category 2]**
+  ○ [Metric Name] - [Definition, calculation, business significance]
+  ○ [Metric Name] - [Definition, calculation, business significance]
+
+**Navigation and Usage Guidelines**
+
+**Accessing Different Views**
+• [Step-by-step navigation instructions]
+• [View switching mechanisms]
+• [Filter and drill-down capabilities]
+
+**Best Practices**
+• [Recommended analysis workflow]
+• [Key insights to monitor]
+• [Data interpretation guidelines]
+
+**Technical Information**
+
+• **Data Refresh:** [Update frequency and timing]
+• **Historical Data:** [Available time ranges]
+• **Export Capabilities:** [Available formats and processes]
+• **User Permissions:** [Access levels and restrictions]
+
+**FORMATTING GUIDELINES:**
+- Use only bold text for headings (NO # markdown symbols)
+- Use bullet points (•) and sub-bullets (○) for clean lists
+- Include specific numbers, percentages, and business metrics
+- Write in professional third person voice
+- Avoid all emojis and casual language
+- Use **bold** for emphasis on key terms only
+- Keep content actionable and business-focused
+- Provide concrete examples and specific instructions
+
+Create documentation that displays perfectly in Confluence with clean formatting and professional presentation.
 """
         
         # Generate documentation using Bedrock
@@ -661,24 +692,16 @@ The [Dashboard Name] in QuickSight has the following main views:
         # Ensure outputs directory exists
         os.makedirs("outputs", exist_ok=True)
         
-        # Add image references section
-        image_refs_section = f"""
-**Source Dashboard Screenshots:**
-{chr(10).join(image_references)}
-
-"""
-        
-        # Create comprehensive documentation file
+        # Create clean documentation file for Confluence
         with open(doc_filename, 'w', encoding='utf-8') as f:
-            f.write(image_refs_section)
+            # Write only the clean documentation content
             f.write(documentation_text)
-            f.write(f"\n\n---\n\n")
-            f.write(f"**📁 Source Images:** {len(analysis_results)} dashboard screenshots\n")
-            f.write(f"**📄 Analysis Sources:** {', '.join([os.path.basename(f) for f in analysis_results.values()])}\n")
-            f.write(f"**📅 Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            ai_model = "GPT-4 Omni (OpenAI)" if getattr(config, 'ai_provider', 'bedrock') == 'openai' else "Claude 3.5 Sonnet (AWS Bedrock)"
-            f.write(f"**🤖 AI Model:** {ai_model}\n\n")
-            f.write("*Generated by QuickSight Dashboard Image Analyzer - Multi-Dashboard Analysis*\n")
+            
+            # Add minimal, professional footer
+            f.write(f"\n\n**Documentation Information**\n\n")
+            f.write(f"• **Generated:** {datetime.now().strftime('%B %d, %Y')}\n")
+            f.write(f"• **Coverage:** {len(analysis_results)} dashboard views analyzed\n")
+            f.write(f"• **Analysis Method:** AWS Bedrock Claude 3.5 Sonnet AI\n")
         
         logger.info(f"✅ Multi-dashboard documentation generated: {doc_filename}")
         print(f"📚 Comprehensive documentation saved: {doc_filename}")
