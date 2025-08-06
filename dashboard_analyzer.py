@@ -296,84 +296,68 @@ def generate_dashboard_documentation(analysis_file: str, image_path: str) -> Opt
         
         # Enhanced documentation prompt based on user's Cash Dash example
         documentation_prompt = f"""
-You are a technical writer specializing in business intelligence dashboard documentation. Create clean, professional documentation optimized for Confluence publishing.
+Create professional QuickSight dashboard documentation using the analysis below. Output ONLY the documentation content with no extra commentary or introduction text.
 
-**DASHBOARD ANALYSIS INPUT:**
+ANALYSIS INPUT:
 {analysis_content}
 
-**FORMATTING REQUIREMENTS FOR CONFLUENCE:**
+FORMATTING REQUIREMENTS:
+- Use ONLY bold text for headings (**Heading**) - NO markdown # symbols
+- Use bullet points (•) for lists
+- Write in professional third person
+- No emojis or casual language
+- Include specific metrics and numbers where available
 
-**CRITICAL:** Do NOT use markdown # headings. Use only bold text for headings as shown below.
-
-**Output Format:**
+OUTPUT FORMAT (copy this structure exactly):
 
 **Objective**
 
-Write a clear, professional paragraph explaining the dashboard's purpose, business context, and strategic value. Focus on specific business outcomes and stakeholder benefits.
+[Clear paragraph explaining dashboard purpose, business value, and strategic importance]
 
 **Dashboard Overview**
 
-The [Dashboard Name] provides comprehensive insights through multiple specialized views:
+[Dashboard name] provides [comprehensive description of functionality]:
 
-• **[View 1 Name]** - [Brief description of purpose and key metrics]
-• **[View 2 Name]** - [Brief description of purpose and key metrics]  
-• **[View 3 Name]** - [Brief description of purpose and key metrics]
+• **[Section 1]** - [Purpose and key metrics]
+• **[Section 2]** - [Purpose and key metrics]
+• **[Section 3]** - [Purpose and key metrics]
 
-**Key Features and Capabilities**
+**Key Features**
 
-1. **[Feature Name]** - [Detailed explanation including business value, technical specs, and usage guidelines]
+• **[Feature 1]** - [Description and business value]
+• **[Feature 2]** - [Description and business value]
+• **[Feature 3]** - [Description and business value]
 
-2. **[Feature Name]** - [Continue with specific functionality details and business benefits]
+**Detailed Analysis**
 
-3. **[Feature Name]** - [Include any filtering, drill-down, or interactive capabilities]
+**[Section 1 Name]**
+[Detailed explanation of functionality, metrics, and business applications]
 
-**Detailed View Analysis**
+**[Section 2 Name]**
+[Detailed explanation of functionality, metrics, and business applications]
 
-**[View 1 Name]**
-[Comprehensive explanation of view purpose, metrics displayed, data sources, and business applications. Include specific numbers and calculations where visible.]
+**[Section 3 Name]**
+[Detailed explanation of functionality, metrics, and business applications]
 
-**[View 2 Name]**
-[Detailed analysis with focus on practical usage, key insights, and business decision support.]
+**Key Metrics**
 
-**[View 3 Name]**
-[Complete breakdown of functionality, metrics, and strategic value for users.]
+• **[Metric 1]** - [Definition and business significance]
+• **[Metric 2]** - [Definition and business significance]
+• **[Metric 3]** - [Definition and business significance]
 
-**Key Metrics and Calculations**
+**Usage Guidelines**
 
-• **[Metric 1]** - [Definition, calculation method, business significance, and typical ranges]
-• **[Metric 2]** - [Complete explanation with formulas and context]
-• **[Metric 3]** - [Include any special considerations or data refresh timing]
+• Navigate between sections using [specific method]
+• Apply filters through [process description]
+• Export data via [available options]
 
-**Navigation and Usage Guidelines**
+**Technical Information**
 
-**Accessing Views**
-• Navigate between views using [specific instructions]
-• Apply filters through [detailed process]
-• Export data via [step-by-step guide]
+• **Data Refresh:** [Frequency]
+• **Coverage:** [Time periods]
+• **Export Options:** [Available formats]
 
-**Best Practices**
-• Start analysis with [recommended approach]
-• Use filters to focus on [specific guidance]
-• Monitor key trends by [actionable steps]
-
-**Data and Technical Information**
-
-• **Update Frequency:** [Specify refresh schedule]
-• **Data Sources:** [List primary data connections]
-• **Historical Range:** [Available time periods]
-• **Export Options:** [Available formats and limitations]
-
-**FORMATTING GUIDELINES:**
-- Use only bold text for headings (no # markdown symbols)
-- Use bullet points (•) for lists, not dashes (-)
-- Include specific numbers, percentages, and business metrics
-- Write in professional third person
-- Avoid emojis completely
-- Use **bold** for emphasis on key terms
-- Keep sentences clear and actionable
-- Include concrete examples and specific instructions
-
-Create documentation that will display cleanly in Confluence with proper formatting and professional presentation.
+OUTPUT ONLY THE DOCUMENTATION - NO INTRODUCTORY TEXT OR EXPLANATIONS.
         """
         
         # Initialize Bedrock client
@@ -568,84 +552,66 @@ def generate_multi_dashboard_documentation(analysis_results: dict) -> Optional[s
         
         # Create consolidated analysis prompt with improved Confluence formatting
         consolidated_prompt = f"""
-You are a technical writer specializing in business intelligence dashboard documentation. Create clean, professional documentation for a single large dashboard captured in multiple screenshots, optimized for Confluence publishing.
+Create professional documentation for a single dashboard captured in multiple screenshots. Output ONLY the documentation content with no extra commentary.
 
-**MULTIPLE SCREENSHOT ANALYSES (SINGLE DASHBOARD):**
+ANALYSIS INPUT FROM MULTIPLE SCREENSHOTS:
 {chr(10).join(all_analyses)}
 
-**FORMATTING REQUIREMENTS FOR CONFLUENCE:**
+FORMATTING REQUIREMENTS:
+- Use ONLY bold text for headings (**Heading**) - NO markdown # symbols
+- Use bullet points (•) for lists
+- Write in professional third person
+- No emojis or casual language
+- Include specific metrics and numbers from the screenshots
 
-**CRITICAL:** Use only bold text for headings. NO markdown # symbols. Follow this exact format for clean Confluence display.
-
-**Output Format:**
+OUTPUT FORMAT (copy this structure exactly):
 
 **Objective**
 
-Write a comprehensive paragraph explaining the purpose of this single dashboard, its business value, and strategic importance. Synthesize information from all screenshots to describe the complete dashboard system. Focus on specific outcomes for stakeholders.
+[Comprehensive paragraph explaining dashboard purpose, business value, and strategic importance synthesized from all screenshots]
 
 **Dashboard Overview**
 
-The [Dashboard Name] provides comprehensive analytics through multiple sections/views captured in the screenshots:
+The [Dashboard Name] provides comprehensive analytics through multiple sections:
 
-• **[View 1 Name]** - [Purpose and key metrics covered]
-• **[View 2 Name]** - [Purpose and key metrics covered]
-• **[View 3 Name]** - [Purpose and key metrics covered]
+• **[Section 1]** - [Purpose and key metrics from screenshot 1]
+• **[Section 2]** - [Purpose and key metrics from screenshot 2]
+• **[Section 3]** - [Purpose and key metrics from screenshot 3]
 
-**Dashboard Layout and Navigation**
+**Dashboard Navigation**
 
-[Explain how the different sections/tabs work together, data relationships, and navigation flow within this single dashboard system]
+[Explain how sections work together and navigation flow within the single dashboard]
 
-**Detailed View Analysis**
+**Detailed Section Analysis**
 
-**[View 1 Name]**
-[Comprehensive analysis of functionality, metrics, visualizations, and business applications]
+**[Section 1 Name]**
+[Comprehensive analysis of functionality, metrics, and business applications from screenshot 1]
 
-**[View 2 Name]**
-[Detailed breakdown of purpose, key insights, and practical usage guidelines]
+**[Section 2 Name]**
+[Detailed breakdown of functionality, metrics, and business applications from screenshot 2]
 
-**[View 3 Name]**
-[Complete explanation of features, data presentation, and decision support capabilities]
+**[Section 3 Name]**
+[Complete analysis of functionality, metrics, and business applications from screenshot 3]
 
-**Comprehensive Metrics Guide**
+**Key Metrics**
 
-• **[Metric Category 1]**
-  ○ [Metric Name] - [Definition, calculation, business significance]
-  ○ [Metric Name] - [Definition, calculation, business significance]
+• **[Metric 1]** - [Definition and business significance]
+• **[Metric 2]** - [Definition and business significance]
+• **[Metric 3]** - [Definition and business significance]
 
-• **[Metric Category 2]**
-  ○ [Metric Name] - [Definition, calculation, business significance]
-  ○ [Metric Name] - [Definition, calculation, business significance]
+**Usage Guidelines**
 
-**Navigation and Usage Guidelines**
-
-**Accessing Different Views**
-• [Step-by-step navigation instructions]
-• [View switching mechanisms]
-• [Filter and drill-down capabilities]
-
-**Best Practices**
-• [Recommended analysis workflow]
-• [Key insights to monitor]
-• [Data interpretation guidelines]
+• Navigate between sections using [specific method]
+• Apply filters through [process description]
+• Access different views via [navigation method]
 
 **Technical Information**
 
-• **Data Refresh:** [Update frequency and timing]
-• **Historical Data:** [Available time ranges]
-• **Export Capabilities:** [Available formats and processes]
-• **User Permissions:** [Access levels and restrictions]
+• **Data Refresh:** [Update frequency]
+• **Coverage:** [Time periods available]
+• **Export Options:** [Available formats]
 
-**FORMATTING GUIDELINES:**
-- Use only bold text for headings (NO # markdown symbols)
-- Use bullet points (•) and sub-bullets (○) for clean lists
-- Include specific numbers, percentages, and business metrics
-- Write in professional third person voice
-- Avoid all emojis and casual language
-- Use **bold** for emphasis on key terms only
-- Keep content actionable and business-focused
-- Provide concrete examples and specific instructions
-
-Create documentation that displays perfectly in Confluence with clean formatting and professional presentation.
+OUTPUT ONLY THE DOCUMENTATION - NO INTRODUCTORY TEXT OR EXPLANATIONS.
 """
         
         # Generate documentation using Bedrock
