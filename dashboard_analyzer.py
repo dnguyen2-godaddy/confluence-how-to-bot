@@ -549,12 +549,12 @@ def analyze_multiple_images(image_paths: list) -> dict:
 
 
 def generate_multi_dashboard_documentation(analysis_results: dict) -> Optional[str]:
-    """Generate consolidated documentation from multiple dashboard analyses."""
+    """Generate consolidated documentation from multiple screenshots of a single large dashboard."""
     if not analysis_results:
         return None
     
     try:
-        print("🤖 Generating comprehensive multi-dashboard documentation...")
+        print("🤖 Generating comprehensive documentation from multiple screenshots...")
         
         # Read all analysis files
         all_analyses = []
@@ -568,9 +568,9 @@ def generate_multi_dashboard_documentation(analysis_results: dict) -> Optional[s
         
         # Create consolidated analysis prompt with improved Confluence formatting
         consolidated_prompt = f"""
-You are a technical writer specializing in business intelligence dashboard documentation. Create clean, professional documentation for multiple dashboard views optimized for Confluence publishing.
+You are a technical writer specializing in business intelligence dashboard documentation. Create clean, professional documentation for a single large dashboard captured in multiple screenshots, optimized for Confluence publishing.
 
-**MULTIPLE DASHBOARD ANALYSES:**
+**MULTIPLE SCREENSHOT ANALYSES (SINGLE DASHBOARD):**
 {chr(10).join(all_analyses)}
 
 **FORMATTING REQUIREMENTS FOR CONFLUENCE:**
@@ -581,19 +581,19 @@ You are a technical writer specializing in business intelligence dashboard docum
 
 **Objective**
 
-Write a comprehensive paragraph explaining the purpose of this multi-view dashboard system, its business value, and strategic importance. Focus on specific outcomes for stakeholders.
+Write a comprehensive paragraph explaining the purpose of this single dashboard, its business value, and strategic importance. Synthesize information from all screenshots to describe the complete dashboard system. Focus on specific outcomes for stakeholders.
 
 **Dashboard Overview**
 
-The [Dashboard System Name] provides comprehensive analytics through multiple specialized views:
+The [Dashboard Name] provides comprehensive analytics through multiple sections/views captured in the screenshots:
 
 • **[View 1 Name]** - [Purpose and key metrics covered]
 • **[View 2 Name]** - [Purpose and key metrics covered]
 • **[View 3 Name]** - [Purpose and key metrics covered]
 
-**System Architecture and Flow**
+**Dashboard Layout and Navigation**
 
-[Explain how the views work together, data relationships, and navigation flow between different dashboard components]
+[Explain how the different sections/tabs work together, data relationships, and navigation flow within this single dashboard system]
 
 **Detailed View Analysis**
 
@@ -700,11 +700,11 @@ Create documentation that displays perfectly in Confluence with clean formatting
             # Add minimal, professional footer
             f.write(f"\n\n**Documentation Information**\n\n")
             f.write(f"• **Generated:** {datetime.now().strftime('%B %d, %Y')}\n")
-            f.write(f"• **Coverage:** {len(analysis_results)} dashboard views analyzed\n")
+            f.write(f"• **Coverage:** {len(analysis_results)} screenshots of single dashboard analyzed\n")
             f.write(f"• **Analysis Method:** AWS Bedrock Claude 3.5 Sonnet AI\n")
         
         logger.info(f"✅ Multi-dashboard documentation generated: {doc_filename}")
-        print(f"📚 Comprehensive documentation saved: {doc_filename}")
+        print(f"📚 Comprehensive single-dashboard documentation saved: {doc_filename}")
         
         return doc_filename
         
@@ -729,7 +729,7 @@ def upload_dashboard_image():
     # Show analysis options
     print("📊 Analysis Options:")
     print("1. 📸 Single Dashboard Analysis")
-    print("2. 📷 Multiple Dashboard Analysis (tabs, views, etc.)")
+    print("2. 📷 Multi-Screenshot Analysis (Large Dashboard)")
     print("3. ❌ Exit")
     print()
     
@@ -873,14 +873,15 @@ def upload_dashboard_image():
 
 def upload_multiple_images():
     """Interactive multiple dashboard image upload and analysis."""
-    print("\n📷 Multiple Dashboard Analysis")
+    print("\n📷 Multi-Screenshot Analysis for Large Dashboard")
     print("=" * 40)
-    print("📋 Upload multiple dashboard screenshots for comprehensive analysis")
+    print("📋 Upload multiple screenshots of a single large dashboard")
     print()
     print("💡 This is perfect for:")
-    print("   • Multi-tab dashboards (e.g., Scorecard + SLAs)")
-    print("   • Different dashboard views")
-    print("   • Complete dashboard system documentation")
+    print("   • Large dashboards with multiple tabs/sections")
+    print("   • Dashboards requiring several screenshots to capture all content")
+    print("   • Complex single dashboards with many visualizations")
+    print("   • Dashboards with expandable sections or drill-down views")
     print()
     
     # Show recent images for selection
@@ -962,13 +963,13 @@ def upload_multiple_images():
     analysis_results = analyze_multiple_images(selected_images)
     
     if analysis_results:
-        print(f"\n🎉 Multi-Dashboard Analysis Complete!")
-        print(f"📊 Successfully analyzed {len(analysis_results)} images")
+        print(f"\n🎉 Multi-Screenshot Analysis Complete!")
+        print(f"📊 Successfully analyzed {len(analysis_results)} screenshots of the dashboard")
         print()
         
         # Ask about documentation generation
         print("📚 Documentation Options:")
-        print("1. 📝 Generate comprehensive multi-dashboard documentation")
+        print("1. 📝 Generate comprehensive single-dashboard documentation")
         print("2. 🔗 Generate documentation + publish to Confluence")
         print("3. ⏭️  Skip documentation")
         
@@ -986,7 +987,7 @@ def upload_multiple_images():
                 else:
                     print("❌ Failed to publish to Confluence")
         
-        print(f"\n🚀 Multi-dashboard analysis workflow complete!")
+        print(f"\n🚀 Multi-screenshot analysis workflow complete!")
     else:
         print("❌ No images were successfully analyzed")
 
