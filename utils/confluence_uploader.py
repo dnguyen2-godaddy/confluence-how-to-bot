@@ -297,7 +297,7 @@ class ConfluenceUploader:
             return None
 
     def upload_content(self, title: str, content: str, content_type: str = 'markdown', images: list = None) -> Optional[str]:
-        """Upload or update content to Confluence."""
+        """Upload or update content to Confluence with embedded images."""
         if not all([self.confluence_url, self.username, self.api_token, self.space_key]):
             print("❌ Confluence not properly configured")
             return None
@@ -311,39 +311,68 @@ class ConfluenceUploader:
             
             print(f"📝 Processing content: {title}")
             
+            # For new pages, we need to create the page first to get an ID for image uploads
             # Check if page already exists
             existing_page = self.find_page_by_title(title)
             
             if existing_page:
-                print(f"📄 Updating existing page: {title}")
-                page_url = self.update_page(
-                    existing_page['id'],
-                    title,
-                    content,
-                    existing_page['version']['number']
-                )
                 page_id = existing_page['id']
+                print(f"📄 Updating existing page: {title}")
             else:
                 print(f"✨ Creating new page: {title}")
+                # Create page with initial content
                 page_url = self.create_page(title, content)
-                # Extract page ID from URL for image uploads
                 if page_url and '/pages/' in page_url:
                     page_id = page_url.split('/pages/')[-1].split('/')[0]
                 else:
-                    page_id = None
+                    return None
             
-            # Upload images if provided
+            # Upload images and get their attachment URLs
+            image_embeds = []
             if images and page_id:
                 print(f"📸 Uploading {len(images)} images...")
-                for image_path in images:
+                for i, image_path in enumerate(images, 1):
                     if os.path.exists(image_path):
                         image_url = self.upload_image(image_path, page_id)
                         if image_url:
-                            print(f"✅ Uploaded: {os.path.basename(image_path)}")
+                            filename = os.path.basename(image_path)
+                            print(f"✅ Uploaded: {filename}")
+                            # Create Confluence image macro for embedding
+                            image_embed = f'<ac:image ac:width="800"><ri:attachment ri:filename="{filename}" /></ac:image>'
+                            image_embeds.append({
+                                'section': f"**Dashboard View {i}**",
+                                'embed': image_embed,
+                                'filename': filename
+                            })
                         else:
                             print(f"❌ Failed to upload: {os.path.basename(image_path)}")
                     else:
                         print(f"❌ Image not found: {image_path}")
+            
+            # Embed images into content if we have them
+            if image_embeds:
+                enhanced_content = self._embed_images_in_content(content, image_embeds)
+            else:
+                enhanced_content = content
+            
+            # Update page with embedded images
+            if existing_page:
+                page_url = self.update_page(
+                    page_id,
+                    title, 
+                    enhanced_content,
+                    existing_page['version']['number']
+                )
+            else:
+                # Update the page we just created with image-embedded content
+                temp_page = self.find_page_by_title(title)
+                if temp_page:
+                    page_url = self.update_page(
+                        page_id,
+                        title,
+                        enhanced_content,
+                        temp_page['version']['number']
+                    )
             
             return page_url
             
@@ -351,6 +380,69 @@ class ConfluenceUploader:
             logger.error(f"❌ Upload failed: {e}")
             print(f"❌ Upload failed: {e}")
             return None
+    
+    def _embed_images_in_content(self, content: str, image_embeds: list) -> str:
+        """Embed images into the content at appropriate locations."""
+        try:
+            # Convert content to lines for easier manipulation
+            lines = content.split('\n')
+            enhanced_lines = []
+            
+            # Add images at the beginning after the Objective section
+            image_section_added = False
+            
+            for i, line in enumerate(lines):
+                enhanced_lines.append(line)
+                
+                # Add images section after the Objective section
+                if not image_section_added and line.strip() and not line.startswith('**') and i > 0:
+                    if lines[i-1].strip() == '**Objective**' or 'objective' in line.lower():
+                        # Add a dashboard screenshots section
+                        enhanced_lines.extend([
+                            '',
+                            '**Dashboard Screenshots**',
+                            ''
+                        ])
+                        
+                        # Add each image with a descriptive header
+                        for j, img_info in enumerate(image_embeds, 1):
+                            enhanced_lines.extend([
+                                f"**View {j}: {img_info['filename'].replace('.png', '').replace('Screenshot ', '')}**",
+                                '',
+                                img_info['embed'],
+                                ''
+                            ])
+                        
+                        image_section_added = True
+                        enhanced_lines.append('')  # Add spacing
+            
+            # If we didn't find a good place to insert, add at the end before any footer
+            if not image_section_added and image_embeds:
+                # Find the last substantive content line
+                insert_index = len(enhanced_lines)
+                for i in range(len(enhanced_lines) - 1, -1, -1):
+                    if enhanced_lines[i].strip() and not enhanced_lines[i].startswith('**Documentation Information**'):
+                        insert_index = i + 1
+                        break
+                
+                # Insert images section
+                enhanced_lines.insert(insert_index, '')
+                enhanced_lines.insert(insert_index + 1, '**Dashboard Screenshots**')
+                enhanced_lines.insert(insert_index + 2, '')
+                
+                insert_pos = insert_index + 3
+                for j, img_info in enumerate(image_embeds, 1):
+                    enhanced_lines.insert(insert_pos, f"**View {j}: {img_info['filename'].replace('.png', '').replace('Screenshot ', '')}**")
+                    enhanced_lines.insert(insert_pos + 1, '')
+                    enhanced_lines.insert(insert_pos + 2, img_info['embed'])
+                    enhanced_lines.insert(insert_pos + 3, '')
+                    insert_pos += 4
+            
+            return '\n'.join(enhanced_lines)
+            
+        except Exception as e:
+            logger.error(f"Error embedding images in content: {e}")
+            return content  # Return original content if embedding fails
 
 
 def get_confluence_setup_guide() -> str:
