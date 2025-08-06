@@ -332,10 +332,13 @@ class ConfluenceUploader:
             if images and page_id:
                 print(f"📸 Uploading {len(images)} images...")
                 for i, image_path in enumerate(images, 1):
-                    if os.path.exists(image_path):
-                        image_url = self.upload_image(image_path, page_id)
+                    # Clean and expand the image path
+                    cleaned_path = os.path.expanduser(image_path.strip().strip('"').strip("'"))
+                    
+                    if os.path.exists(cleaned_path):
+                        image_url = self.upload_image(cleaned_path, page_id)
                         if image_url:
-                            filename = os.path.basename(image_path)
+                            filename = os.path.basename(cleaned_path)
                             print(f"✅ Uploaded: {filename}")
                             # Create Confluence image macro for embedding
                             image_embed = f'<ac:image ac:width="800"><ri:attachment ri:filename="{filename}" /></ac:image>'
@@ -345,9 +348,14 @@ class ConfluenceUploader:
                                 'filename': filename
                             })
                         else:
-                            print(f"❌ Failed to upload: {os.path.basename(image_path)}")
+                            print(f"❌ Failed to upload: {os.path.basename(cleaned_path)}")
                     else:
-                        print(f"❌ Image not found: {image_path}")
+                        print(f"❌ Image not found: {cleaned_path}")
+                        # Try to give more helpful information
+                        if os.path.exists(image_path):
+                            print(f"💡 Note: Original path exists: {image_path}")
+                        else:
+                            print(f"💡 Original path also doesn't exist: {image_path}")
             
             # Embed images into content if we have them
             if image_embeds:

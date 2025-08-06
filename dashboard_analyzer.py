@@ -778,6 +778,9 @@ def upload_dashboard_image():
             print("❌ Please provide an image file path")
             continue
         
+        # Clean and validate the image path
+        image_path = image_path.strip().strip('"').strip("'")
+        
         # Analyze the image
         result = analyze_dashboard_image(image_path)
         
@@ -879,11 +882,13 @@ def upload_multiple_images():
                     continue
             elif choice == '0':
                 custom_path = input("📁 Enter file path: ").strip()
+                # Clean the path
+                custom_path = custom_path.strip().strip('"').strip("'")
                 if custom_path and os.path.exists(custom_path):
                     selected_images.append(custom_path)
                     print(f"✅ Added: {os.path.basename(custom_path)}")
                 else:
-                    print("❌ File not found")
+                    print(f"❌ File not found: {custom_path}")
             elif choice.isdigit():
                 choice_num = int(choice)
                 if 1 <= choice_num <= len(recent_images):
@@ -913,11 +918,14 @@ def upload_multiple_images():
                     print("❌ Please select at least 2 images")
                     continue
             
+            # Clean the path
+            img_path = img_path.strip().strip('"').strip("'")
+            
             if os.path.exists(img_path):
                 selected_images.append(img_path)
                 print(f"✅ Added: {os.path.basename(img_path)}")
             else:
-                print("❌ File not found")
+                print(f"❌ File not found: {img_path}")
     
     if len(selected_images) < 2:
         print("❌ Need at least 2 images for multi-dashboard analysis")
