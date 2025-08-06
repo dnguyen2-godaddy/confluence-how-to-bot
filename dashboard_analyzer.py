@@ -277,25 +277,19 @@ For each chart/visual, identify:
 
 def add_screenshot_references(documentation: str, image_path: str) -> str:
     """
-    Add screenshot reference information to documentation.
-    This function can be enhanced to include actual screenshot cropping and annotations.
+    Add screenshot reference information to documentation in professional format.
     """
-    # For now, add image reference information
+    # Add clean reference note at the top
     screenshot_note = f"""
-## 📸 Screenshot Reference
-**Original Dashboard Image:** `{image_path}`
-
-*Note: For each visualization described below, refer to the original screenshot to see the exact layout and visual elements.*
-
----
+**Source Dashboard Screenshot:** {image_path}
 
 """
     
-    # Insert after the first heading
+    # Insert after the first section
     lines = documentation.split('\n')
     insert_index = 1
     for i, line in enumerate(lines):
-        if line.startswith('## 🎯 Purpose & Overview'):
+        if line.startswith('**Objective**'):
             insert_index = i
             break
     
@@ -312,116 +306,78 @@ def generate_dashboard_documentation(analysis_file: str, image_path: str) -> Opt
         with open(analysis_file, 'r', encoding='utf-8') as f:
             analysis_content = f.read()
         
-        # Enhanced documentation prompt
+        # Enhanced documentation prompt based on user's Cash Dash example
         documentation_prompt = f"""
-You are a technical writer specializing in business intelligence dashboard documentation and user training materials.
-
-Based on the following dashboard analysis, create comprehensive how-to documentation that helps users understand and effectively use this QuickSight dashboard.
+You are a technical writer specializing in business intelligence dashboard documentation. Create professional documentation following the exact format and style of GoDaddy's Cash Dash documentation.
 
 **DASHBOARD ANALYSIS:**
 {analysis_content}
 
-**CREATE DOCUMENTATION WITH THIS STRUCTURE:**
+**CREATE DOCUMENTATION FOLLOWING THIS EXACT STRUCTURE AND STYLE:**
 
-# 📊 Dashboard User Guide: [Dashboard Name]
+**Objective**
 
-## 🎯 Purpose & Overview
-- What this dashboard is for
-- Who should use it
-- Primary business questions answered by this dashboard
-- When to use it (daily, weekly, monthly monitoring)
+[Write a clear, professional paragraph explaining the goal of this dashboard, what it provides overview of, and what performance it tracks. Be specific about business context and purpose. No emojis.]
 
-## 🎯 Key Business Questions Answered
-- List 3-5 specific business questions this dashboard helps answer
-- Include the business value of each question
-- Connect to decision-making scenarios
+**Dashboard Overview**
 
-## 📊 Understanding the Visualizations
-*For each major visualization, create a detailed section with this format:*
+The [Dashboard Name] in QuickSight has the following views:
+1. [View Name 1]
+2. [View Name 2] 
+3. [View Name 3]
+[etc.]
 
-### [Visualization Name] 
-**📸 Screenshot Reference:** [Note location in dashboard - e.g., "Top-left table", "Bottom charts", "Right panel"]
+For [Dashboard Name] in QuickSight, you can also navigate to [X] other additional views for additional insights:
+1. [Additional View 1]
+2. [Additional View 2]
+All these views are discussed in detail below.
 
-**What it shows:** Clear explanation of the data and purpose
+**New Additions, Features and Changes**
 
-**How to read it:** 
-- Step-by-step interpretation guide
-- Key metrics to focus on
-- Color coding meaning (green=good, red=alert, etc.)
-- Normal ranges and concerning values
-- Interactive elements within this visualization
+[If this is an existing dashboard, note improvements. If new, describe key features.]
 
-**Business Context:**
-- Why this visualization matters
-- What actions to take based on the data
+1. **Feature Name**: [Detailed explanation of what this feature does, how it works, and its business value. Include specific details about performance, timing, or technical specifications.]
 
-## 🔧 Interactive Features
-### Filters and Controls
-- List exact filter names from the analysis (avoid assumptions)
-- How to use date selectors
-- How to apply and clear filters
-- Default values and recommended settings
+2. **Feature Name**: [Continue with numbered list format. Be specific about functionality, comparison capabilities, and business benefits.]
 
-### Multi-Tab Navigation (if applicable)
-- Tab names and purposes (e.g., Scorecard + SLAs)
-- How to navigate between tabs
-- Links between related views
+[Continue for all major features]
 
-### Drill-Down Capabilities
-- Where drill-down is available
-- How to access detailed views
-- How to navigate back to summary level
+**Detailed Overview of Each View**
 
-## 📈 Key Performance Indicators (KPIs)
-### Primary Metrics
-- List each KPI with clear definition
-- Target values and thresholds
-- How to interpret trends (up/down arrows, color changes)
-- What actions to take based on KPI status
+**1. [View Name]**
 
-## ⚠️ Troubleshooting
-### Common Issues
-- Data not loading or appearing blank
-- Filters not working as expected
-- Charts showing unexpected results
-- Performance/loading problems
+[Detailed paragraph explaining what this view shows, what performance metrics it tracks, and how it relates to business objectives. Include specific details about data sources, time periods, and calculation methods.]
 
-### When to Seek Help
-- Who to contact for data issues
-- How to report dashboard problems
-- Escalation procedures for urgent metrics
+**Metrics Reported**
 
-## 💡 Best Practices
-### Regular Monitoring
-- Recommended review frequency
-- Key times to check the dashboard
-- What to look for during reviews
+1. **Metric Name**: [Detailed explanation of what this metric measures, how it's calculated, any toggle options, and business significance. Include formulas where relevant.]
 
-### Action Items
-- How to identify areas needing attention
-- Steps to take when metrics are off-target
-- How to track improvements over time
+2. **Metric Name**: [Continue with detailed explanations. Be specific about calculation methods, data sources, and business context.]
 
-## 📋 Quick Reference
-### Key Shortcuts
-- Important bookmarks or direct links
-- Keyboard shortcuts (if any)
-- Mobile access tips
+[Continue for all metrics]
 
-### Contact Information
-- Dashboard owner/administrator
-- Data source contacts
-- Technical support
+**How tos**
+
+1. **How to [specific task]?**
+   - [Detailed step-by-step instructions with specific examples]
+   - [Include any restrictions, permissions, or special considerations]
+
+2. **[Next practical task]**
+   - [Step-by-step instructions]
+   - [Specific details about process or requirements]
 
 **WRITING GUIDELINES:**
-- Use clear, non-technical language
-- Include specific step-by-step instructions
-- Add warnings for common mistakes
-- Focus on practical, actionable guidance
-- Make it easy to scan and find information quickly
-- Include real examples from the dashboard when possible
+- Use professional, technical language similar to business documentation
+- Be specific with numbers, percentages, time periods, and technical details
+- Avoid emojis and casual language
+- Use numbered lists for features and steps
+- Use bold for feature names and important terms
+- Include exact metric definitions and calculation methods
+- Provide specific business context for each feature
+- Write in third person, professional tone
+- Include concrete examples where helpful
 
-Create documentation that would help a new user become proficient with this dashboard within 15 minutes of reading.
+Create documentation that matches the professional style and depth of the Cash Dash example.
         """
         
         # Initialize Bedrock client
