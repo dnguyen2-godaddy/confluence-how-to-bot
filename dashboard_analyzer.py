@@ -25,6 +25,126 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 
+def get_bedrock_client():
+    """Get a configured Bedrock client."""
+    return boto3.client(
+        'bedrock-runtime',
+        region_name=config.aws_region,
+        aws_access_key_id=config.aws_access_key_id,
+        aws_secret_access_key=config.aws_secret_access_key,
+        aws_session_token=getattr(config, 'aws_session_token', None)
+    )
+
+
+def generate_documentation_with_ai(prompt: str, is_multi_image: bool = False) -> Optional[str]:
+    """Generate documentation using Bedrock AI with a unified prompt structure."""
+    try:
+        print("🤖 Generating professional documentation with AI...")
+        
+        bedrock = get_bedrock_client()
+        
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": prompt
+                    }
+                ]
+            }
+        ]
+        
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 6000 if is_multi_image else 4000,
+            "messages": messages,
+            "temperature": 0.1
+        }
+        
+        response = bedrock.invoke_model(
+            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
+            body=json.dumps(body),
+            contentType='application/json'
+        )
+        
+        response_body = json.loads(response['body'].read())
+        return response_body['content'][0]['text']
+        
+    except Exception as e:
+        logger.error(f"❌ AI documentation generation failed: {e}")
+        print(f"❌ AI documentation generation failed: {e}")
+        return None
+
+
+def create_unified_documentation_prompt(analysis_content: str, is_multi_image: bool = False) -> str:
+    """Create a unified documentation prompt for both single and multi-image analysis."""
+    analysis_type = "multiple screenshots of a single large dashboard" if is_multi_image else "dashboard screenshot"
+    
+    return f"""
+Create professional QuickSight dashboard documentation using the analysis below. Output ONLY the documentation content with no extra commentary.
+
+ANALYSIS INPUT:
+{analysis_content}
+
+FORMATTING REQUIREMENTS:
+- Use ONLY bold text for headings (**Heading**) - NO markdown # symbols
+- Use bullet points (•) for lists
+- Write in professional third person
+- No emojis or casual language
+- Include specific metrics and numbers where available
+
+OUTPUT FORMAT (copy this structure exactly):
+
+**Objective**
+
+[Clear paragraph explaining dashboard purpose, business value, and strategic importance{'synthesized from all screenshots' if is_multi_image else ''}]
+
+**Dashboard Overview**
+
+[Dashboard name] provides comprehensive analytics through {'multiple sections' if is_multi_image else 'specialized views'}:
+
+• **[Section 1]** - [Purpose and key metrics]
+• **[Section 2]** - [Purpose and key metrics]
+• **[Section 3]** - [Purpose and key metrics]
+
+{'**Dashboard Navigation**' if is_multi_image else '**Key Features**'}
+
+{'[Explain how sections work together and navigation flow within the dashboard]' if is_multi_image else '• **[Feature 1]** - [Description and business value]\n• **[Feature 2]** - [Description and business value]\n• **[Feature 3]** - [Description and business value]'}
+
+**Detailed Analysis**
+
+**[Section 1 Name]**
+[Comprehensive analysis of functionality, metrics, and business applications]
+
+**[Section 2 Name]**
+[Detailed breakdown of functionality, metrics, and business applications]
+
+**[Section 3 Name]**
+[Complete analysis of functionality, metrics, and business applications]
+
+**Key Metrics**
+
+• **[Metric 1]** - [Definition and business significance]
+• **[Metric 2]** - [Definition and business significance]
+• **[Metric 3]** - [Definition and business significance]
+
+**Usage Guidelines**
+
+• Navigate between sections using [specific method]
+• Apply filters through [process description]
+• Export data via [available options]
+
+**Technical Information**
+
+• **Data Refresh:** [Update frequency]
+• **Coverage:** [Time periods available]
+• **Export Options:** [Available formats]
+
+OUTPUT ONLY THE DOCUMENTATION - NO INTRODUCTORY TEXT OR EXPLANATIONS.
+    """
+
+
 def validate_image_file(image_path: str) -> tuple[bool, str]:
     """Validate the uploaded image file."""
     if not image_path or not image_path.strip():
@@ -159,13 +279,7 @@ For each chart/visual, identify:
         
         # Initialize Bedrock client
         print("🤖 Connecting to AWS Bedrock AI...")
-        bedrock = boto3.client(
-            'bedrock-runtime',
-            region_name=config.aws_region,
-            aws_access_key_id=config.aws_access_key_id,
-            aws_secret_access_key=config.aws_secret_access_key,
-            aws_session_token=getattr(config, 'aws_session_token', None)
-        )
+        bedrock = get_bedrock_client()
         
         # Prepare Bedrock request with image
         print("🧠 Analyzing dashboard with AI vision...")
@@ -294,112 +408,12 @@ def generate_dashboard_documentation(analysis_file: str, image_path: str) -> Opt
         with open(analysis_file, 'r', encoding='utf-8') as f:
             analysis_content = f.read()
         
-        # Enhanced documentation prompt based on user's Cash Dash example
-        documentation_prompt = f"""
-Create professional QuickSight dashboard documentation using the analysis below. Output ONLY the documentation content with no extra commentary or introduction text.
-
-ANALYSIS INPUT:
-{analysis_content}
-
-FORMATTING REQUIREMENTS:
-- Use ONLY bold text for headings (**Heading**) - NO markdown # symbols
-- Use bullet points (•) for lists
-- Write in professional third person
-- No emojis or casual language
-- Include specific metrics and numbers where available
-
-OUTPUT FORMAT (copy this structure exactly):
-
-**Objective**
-
-[Clear paragraph explaining dashboard purpose, business value, and strategic importance]
-
-**Dashboard Overview**
-
-[Dashboard name] provides [comprehensive description of functionality]:
-
-• **[Section 1]** - [Purpose and key metrics]
-• **[Section 2]** - [Purpose and key metrics]
-• **[Section 3]** - [Purpose and key metrics]
-
-**Key Features**
-
-• **[Feature 1]** - [Description and business value]
-• **[Feature 2]** - [Description and business value]
-• **[Feature 3]** - [Description and business value]
-
-**Detailed Analysis**
-
-**[Section 1 Name]**
-[Detailed explanation of functionality, metrics, and business applications]
-
-**[Section 2 Name]**
-[Detailed explanation of functionality, metrics, and business applications]
-
-**[Section 3 Name]**
-[Detailed explanation of functionality, metrics, and business applications]
-
-**Key Metrics**
-
-• **[Metric 1]** - [Definition and business significance]
-• **[Metric 2]** - [Definition and business significance]
-• **[Metric 3]** - [Definition and business significance]
-
-**Usage Guidelines**
-
-• Navigate between sections using [specific method]
-• Apply filters through [process description]
-• Export data via [available options]
-
-**Technical Information**
-
-• **Data Refresh:** [Frequency]
-• **Coverage:** [Time periods]
-• **Export Options:** [Available formats]
-
-OUTPUT ONLY THE DOCUMENTATION - NO INTRODUCTORY TEXT OR EXPLANATIONS.
-        """
+        # Generate documentation using unified function
+        documentation_prompt = create_unified_documentation_prompt(analysis_content, is_multi_image=False)
+        documentation_text = generate_documentation_with_ai(documentation_prompt, is_multi_image=False)
         
-        # Initialize Bedrock client
-        print("🤖 Generating how-to documentation with AI...")
-        bedrock = boto3.client(
-            'bedrock-runtime',
-            region_name=config.aws_region,
-            aws_access_key_id=config.aws_access_key_id,
-            aws_secret_access_key=config.aws_secret_access_key,
-            aws_session_token=getattr(config, 'aws_session_token', None)
-        )
-        
-        # Prepare Bedrock request
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": documentation_prompt
-                    }
-                ]
-            }
-        ]
-        
-        body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 4000,
-            "messages": messages,
-            "temperature": 0.1
-        }
-        
-        # Call Bedrock
-        response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
-            body=json.dumps(body),
-            contentType='application/json'
-        )
-        
-        # Parse response
-        response_body = json.loads(response['body'].read())
-        documentation_text = response_body['content'][0]['text']
+        if not documentation_text:
+            return None
         
         # Generate filename  
         image_basename = os.path.splitext(os.path.basename(image_path))[0]
@@ -549,106 +563,13 @@ def generate_multi_dashboard_documentation(analysis_results: dict) -> Optional[s
                 all_analyses.append(f"**Analysis of {os.path.basename(image_path)}:**\n{analysis_content}")
                 image_references.append(f"- {os.path.basename(image_path)}: {image_path}")
         
-        # Create consolidated analysis prompt with improved Confluence formatting
-        consolidated_prompt = f"""
-Create professional documentation for a single dashboard captured in multiple screenshots. Output ONLY the documentation content with no extra commentary.
-
-ANALYSIS INPUT FROM MULTIPLE SCREENSHOTS:
-{chr(10).join(all_analyses)}
-
-FORMATTING REQUIREMENTS:
-- Use ONLY bold text for headings (**Heading**) - NO markdown # symbols
-- Use bullet points (•) for lists
-- Write in professional third person
-- No emojis or casual language
-- Include specific metrics and numbers from the screenshots
-
-OUTPUT FORMAT (copy this structure exactly):
-
-**Objective**
-
-[Comprehensive paragraph explaining dashboard purpose, business value, and strategic importance synthesized from all screenshots]
-
-**Dashboard Overview**
-
-The [Dashboard Name] provides comprehensive analytics through multiple sections:
-
-• **[Section 1]** - [Purpose and key metrics from screenshot 1]
-• **[Section 2]** - [Purpose and key metrics from screenshot 2]
-• **[Section 3]** - [Purpose and key metrics from screenshot 3]
-
-**Dashboard Navigation**
-
-[Explain how sections work together and navigation flow within the single dashboard]
-
-**Detailed Section Analysis**
-
-**[Section 1 Name]**
-[Comprehensive analysis of functionality, metrics, and business applications from screenshot 1]
-
-**[Section 2 Name]**
-[Detailed breakdown of functionality, metrics, and business applications from screenshot 2]
-
-**[Section 3 Name]**
-[Complete analysis of functionality, metrics, and business applications from screenshot 3]
-
-**Key Metrics**
-
-• **[Metric 1]** - [Definition and business significance]
-• **[Metric 2]** - [Definition and business significance]
-• **[Metric 3]** - [Definition and business significance]
-
-**Usage Guidelines**
-
-• Navigate between sections using [specific method]
-• Apply filters through [process description]
-• Access different views via [navigation method]
-
-**Technical Information**
-
-• **Data Refresh:** [Update frequency]
-• **Coverage:** [Time periods available]
-• **Export Options:** [Available formats]
-
-OUTPUT ONLY THE DOCUMENTATION - NO INTRODUCTORY TEXT OR EXPLANATIONS.
-"""
+        # Generate documentation using unified function
+        consolidated_analysis = chr(10).join(all_analyses)
+        documentation_prompt = create_unified_documentation_prompt(consolidated_analysis, is_multi_image=True)
+        documentation_text = generate_documentation_with_ai(documentation_prompt, is_multi_image=True)
         
-        # Generate documentation using Bedrock
-        bedrock = boto3.client(
-            'bedrock-runtime',
-            region_name=config.aws_region,
-            aws_access_key_id=config.aws_access_key_id,
-            aws_secret_access_key=config.aws_secret_access_key,
-            aws_session_token=getattr(config, 'aws_session_token', None)
-        )
-        
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": consolidated_prompt
-                    }
-                ]
-            }
-        ]
-        
-        body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 6000,  # Increased for multiple images
-            "messages": messages,
-            "temperature": 0.1
-        }
-        
-        response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
-            body=json.dumps(body),
-            contentType='application/json'
-        )
-        
-        response_body = json.loads(response['body'].read())
-        documentation_text = response_body['content'][0]['text']
+        if not documentation_text:
+            return None
         
         # Generate filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
