@@ -1,365 +1,330 @@
 """
-Confluence Integration
+Confluence API Integration for Dashboard Documentation
 
-This module handles uploading generated documentation to Confluence,
-including page creation, updates, and attachment management.
+Uploads markdown documentation to Confluence using the REST API.
+Supports both Confluence Cloud and Server/Data Center.
 """
 
-import logging
 import json
-from typing import Dict, List, Optional, Any
-from atlassian import Confluence
-from utils.config import config
+import logging
+import os
+import requests
+from base64 import b64encode
+from typing import Optional, Dict, Any
+from urllib.parse import urljoin
+
+from . import config
 
 logger = logging.getLogger(__name__)
 
 
 class ConfluenceUploader:
-    """Handles uploading documentation to Confluence."""
+    """Upload documentation to Confluence via REST API."""
     
     def __init__(self):
-        """Initialize Confluence connection."""
-        try:
-            if not config.validate_confluence_config():
-                raise ValueError("Confluence configuration is incomplete. Please check your .env file for Confluence settings.")
-            
-            self.confluence = Confluence(
-                url=config.confluence_url,
-                username=config.confluence_username,
-                password=config.confluence_api_token,
-                cloud=True  # Set to False for Confluence Server
-            )
-            
-            self.space_key = config.confluence_space_key
-            
-            # Test connection
-            self._test_connection()
-            
-            logger.info(f"Successfully connected to Confluence space: {self.space_key}")
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize Confluence connection: {e}")
-            raise
-    
-    def upload_documentation(self, 
-                           documentation: Dict[str, str],
-                           parent_page_title: Optional[str] = None,
-                           update_existing: bool = True) -> Dict[str, Any]:
-        """
-        Upload documentation to Confluence.
+        """Initialize Confluence API client."""
+        self.confluence_url = getattr(config, 'confluence_url', None)
+        self.username = getattr(config, 'confluence_username', None)
+        self.api_token = getattr(config, 'confluence_api_token', None)
+        self.space_key = getattr(config, 'confluence_space_key', None)
         
-        Args:
-            documentation: Generated documentation dictionary
-            parent_page_title: Title of parent page (if creating under a parent)
-            update_existing: Whether to update existing pages with same title
+        # Validate configuration
+        if not all([self.confluence_url, self.username, self.api_token, self.space_key]):
+            missing = []
+            if not self.confluence_url: missing.append('CONFLUENCE_URL')
+            if not self.username: missing.append('CONFLUENCE_USERNAME')
+            if not self.api_token: missing.append('CONFLUENCE_API_TOKEN')
+            if not self.space_key: missing.append('CONFLUENCE_SPACE_KEY')
             
-        Returns:
-            Dictionary with upload results
-        """
+            logger.warning(f"Confluence configuration incomplete. Missing: {', '.join(missing)}")
+            print(f"⚠️ Confluence not configured. Missing: {', '.join(missing)}")
+            print("💡 Check your .env file and add the required Confluence settings.")
+        
+        # Setup authentication
+        auth_string = f"{self.username}:{self.api_token}"
+        auth_bytes = auth_string.encode('ascii')
+        auth_b64 = b64encode(auth_bytes).decode('ascii')
+        
+        self.headers = {
+            'Authorization': f'Basic {auth_b64}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+        
+        # API base URL - ensure we're using the wiki endpoint
+        if '/wiki' not in self.confluence_url:
+            wiki_url = urljoin(self.confluence_url, '/wiki/')
+        else:
+            wiki_url = self.confluence_url
+        self.api_base = urljoin(wiki_url, 'rest/api/')
+        
+        logger.info(f"🔗 Confluence uploader initialized for: {self.confluence_url}")
+    
+    def test_connection(self) -> bool:
+        """Test Confluence API connection."""
         try:
-            logger.info("Starting Confluence upload process")
+            response = requests.get(
+                urljoin(self.api_base, 'user/current'),
+                headers=self.headers,
+                timeout=10
+            )
             
-            page_title = documentation['title']
-            page_content = documentation['confluence_html']
-            
-            # Check if page already exists
-            existing_page = self._find_existing_page(page_title)
-            
-            if existing_page and update_existing:
-                # Update existing page
-                result = self._update_page(existing_page, page_content)
-                action = "updated"
-            elif existing_page and not update_existing:
-                # Create with unique title
-                unique_title = self._generate_unique_title(page_title)
-                result = self._create_page(unique_title, page_content, parent_page_title)
-                action = "created_new"
+            if response.status_code == 200:
+                user_info = response.json()
+                logger.info(f"✅ Confluence connection successful. User: {user_info.get('displayName', 'Unknown')}")
+                return True
             else:
-                # Create new page
-                result = self._create_page(page_title, page_content, parent_page_title)
-                action = "created"
-            
-            # Add labels for organization
-            if result.get('success'):
-                self._add_page_labels(result['page_id'], ['quicksight', 'dashboard', 'how-to', 'ai-generated'])
-            
-            upload_result = {
-                'success': result.get('success', False),
-                'action': action,
-                'page_id': result.get('page_id'),
-                'page_url': result.get('page_url'),
-                'title': result.get('title'),
-                'space_key': self.space_key,
-                'error': result.get('error')
-            }
-            
-            if upload_result['success']:
-                logger.info(f"Successfully {action} Confluence page: {upload_result['title']}")
-            else:
-                logger.error(f"Failed to upload to Confluence: {upload_result['error']}")
-            
-            return upload_result
-            
+                logger.error(f"❌ Confluence connection failed: {response.status_code} - {response.text}")
+                return False
+                
         except Exception as e:
-            logger.error(f"Confluence upload failed: {e}")
-            return {
-                'success': False,
-                'error': str(e),
-                'action': 'failed'
-            }
-    
-    def _test_connection(self):
-        """Test Confluence connection and permissions."""
-        try:
-            # Try to get space information
-            space_info = self.confluence.get_space(self.space_key)
-            if not space_info:
-                raise Exception(f"Cannot access space '{self.space_key}' - check permissions")
-            
-            logger.info(f"Connection test successful - Space: {space_info.get('name', self.space_key)}")
-            
-        except Exception as e:
-            raise Exception(f"Confluence connection test failed: {e}")
-    
-    def _find_existing_page(self, title: str) -> Optional[Dict]:
-        """Find existing page with the given title."""
-        try:
-            # Search for pages with the exact title in the space
-            results = self.confluence.get_page_by_title(
-                space=self.space_key,
-                title=title
-            )
-            
-            return results if results else None
-            
-        except Exception as e:
-            logger.warning(f"Error searching for existing page: {e}")
-            return None
-    
-    def _create_page(self, 
-                    title: str, 
-                    content: str, 
-                    parent_title: Optional[str] = None) -> Dict[str, Any]:
-        """Create a new Confluence page."""
-        try:
-            parent_id = None
-            
-            # Get parent page ID if specified
-            if parent_title:
-                parent_page = self.confluence.get_page_by_title(
-                    space=self.space_key,
-                    title=parent_title
-                )
-                if parent_page:
-                    parent_id = parent_page['id']
-                else:
-                    logger.warning(f"Parent page '{parent_title}' not found, creating at space root")
-            
-            # Create the page
-            page = self.confluence.create_page(
-                space=self.space_key,
-                title=title,
-                body=content,
-                parent_id=parent_id,
-                type='page',
-                representation='storage'
-            )
-            
-            page_url = f"{config.confluence_url}/spaces/{self.space_key}/pages/{page['id']}"
-            
-            return {
-                'success': True,
-                'page_id': page['id'],
-                'page_url': page_url,
-                'title': title
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to create page: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
-    def _update_page(self, existing_page: Dict, content: str) -> Dict[str, Any]:
-        """Update an existing Confluence page."""
-        try:
-            page_id = existing_page['id']
-            title = existing_page['title']
-            
-            # Update the page
-            updated_page = self.confluence.update_page(
-                page_id=page_id,
-                title=title,
-                body=content,
-                parent_id=existing_page.get('parentId'),
-                type='page',
-                representation='storage'
-            )
-            
-            page_url = f"{config.confluence_url}/spaces/{self.space_key}/pages/{page_id}"
-            
-            return {
-                'success': True,
-                'page_id': page_id,
-                'page_url': page_url,
-                'title': title
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to update page: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
-    def _generate_unique_title(self, base_title: str) -> str:
-        """Generate a unique title by appending timestamp."""
-        from datetime import datetime
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"{base_title} ({timestamp})"
-    
-    def _add_page_labels(self, page_id: str, labels: List[str]) -> bool:
-        """Add labels to a Confluence page."""
-        try:
-            for label in labels:
-                self.confluence.set_page_label(
-                    page_id=page_id,
-                    label=label
-                )
-            
-            logger.info(f"Added labels to page {page_id}: {', '.join(labels)}")
-            return True
-            
-        except Exception as e:
-            logger.warning(f"Failed to add labels: {e}")
+            logger.error(f"❌ Confluence connection error: {e}")
             return False
     
-    def create_dashboard_directory_structure(self, dashboard_name: str) -> Dict[str, Any]:
-        """
-        Create a directory structure for dashboard documentation.
-        
-        Args:
-            dashboard_name: Name of the dashboard
-            
-        Returns:
-            Dictionary with created pages information
-        """
+    def find_page_by_title(self, title: str) -> Optional[Dict[str, Any]]:
+        """Find an existing page by title in the configured space."""
         try:
-            logger.info(f"Creating directory structure for {dashboard_name}")
-            
-            # Create main dashboard directory page
-            main_page_title = f"📊 {dashboard_name} Documentation"
-            main_page_content = f"""
-            <h1>📊 {dashboard_name} Documentation</h1>
-            
-            <div class="panel" style="border-color: #3498db; border-width: 2px;">
-                <div class="panelHeader" style="border-color: #3498db; background-color: #e8f4fd;">
-                    <strong>📚 Documentation Hub</strong>
-                </div>
-                <div class="panelContent">
-                    <p>This page contains all documentation related to the <strong>{dashboard_name}</strong> dashboard.</p>
-                    
-                    <h3>📖 Available Documentation:</h3>
-                    <ul>
-                        <li><strong>User Guide</strong> - Comprehensive how-to guide for end users</li>
-                        <li><strong>Quick Reference</strong> - Quick tips and shortcuts</li>
-                        <li><strong>Troubleshooting</strong> - Common issues and solutions</li>
-                    </ul>
-                    
-                    <p><em>📝 This documentation hub was automatically generated by the Confluence How-To Bot.</em></p>
-                </div>
-            </div>
-            """
-            
-            main_page = self._create_page(main_page_title, main_page_content)
-            
-            created_pages = {
-                'main_page': main_page,
-                'success': main_page.get('success', False)
+            params = {
+                'title': title,
+                'spaceKey': self.space_key,
+                'expand': 'version'
             }
             
-            return created_pages
-            
-        except Exception as e:
-            logger.error(f"Failed to create directory structure: {e}")
-            return {'success': False, 'error': str(e)}
-    
-    def get_space_info(self) -> Dict[str, Any]:
-        """Get information about the Confluence space."""
-        try:
-            space_info = self.confluence.get_space(self.space_key)
-            
-            return {
-                'key': space_info.get('key'),
-                'name': space_info.get('name'),
-                'type': space_info.get('type'),
-                'status': space_info.get('status'),
-                'homepage_id': space_info.get('homepage', {}).get('id'),
-                'url': f"{config.confluence_url}/spaces/{self.space_key}"
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to get space info: {e}")
-            return {'error': str(e)}
-    
-    def list_existing_dashboard_docs(self) -> List[Dict[str, Any]]:
-        """List existing dashboard documentation pages."""
-        try:
-            # Search for pages with dashboard-related labels
-            results = self.confluence.get_all_pages_from_space(
-                space=self.space_key,
-                start=0,
-                limit=100,
-                status=None,
-                expand='metadata.labels'
+            response = requests.get(
+                urljoin(self.api_base, 'content'),
+                headers=self.headers,
+                params=params,
+                timeout=10
             )
             
-            dashboard_pages = []
+            if response.status_code == 200:
+                results = response.json().get('results', [])
+                if results:
+                    return results[0]
             
-            for page in results:
-                # Check if page has dashboard-related labels or title
-                title = page.get('title', '')
-                if any(keyword in title.lower() for keyword in ['dashboard', 'how-to', 'guide']):
-                    dashboard_pages.append({
-                        'id': page['id'],
-                        'title': title,
-                        'url': f"{config.confluence_url}/spaces/{self.space_key}/pages/{page['id']}",
-                        'created': page.get('createdDate'),
-                        'updated': page.get('lastModified')
-                    })
-            
-            logger.info(f"Found {len(dashboard_pages)} existing dashboard documentation pages")
-            return dashboard_pages
-            
-        except Exception as e:
-            logger.error(f"Failed to list existing docs: {e}")
-            return []
-    
-    def backup_page(self, page_id: str) -> Optional[Dict[str, Any]]:
-        """Create a backup of a page before updating."""
-        try:
-            page_content = self.confluence.get_page_by_id(
-                page_id=page_id,
-                expand='body.storage,version'
-            )
-            
-            backup_data = {
-                'id': page_id,
-                'title': page_content.get('title'),
-                'content': page_content.get('body', {}).get('storage', {}).get('value'),
-                'version': page_content.get('version', {}).get('number'),
-                'backed_up_at': datetime.now().isoformat()
-            }
-            
-            # Save backup to file
-            backup_filename = f"confluence_backup_{page_id}_{backup_data['version']}.json"
-            with open(backup_filename, 'w', encoding='utf-8') as f:
-                json.dump(backup_data, f, indent=2)
-            
-            logger.info(f"Created backup: {backup_filename}")
-            return backup_data
-            
-        except Exception as e:
-            logger.error(f"Failed to create backup: {e}")
             return None
+            
+        except Exception as e:
+            logger.error(f"❌ Error finding page: {e}")
+            return None
+    
+    def convert_markdown_to_confluence(self, markdown_content: str) -> str:
+        """Convert markdown to Confluence storage format."""
+        # Basic markdown to Confluence conversion
+        # You might want to use a proper markdown->confluence converter library
+        
+        confluence_content = markdown_content
+        
+        # Convert headers
+        confluence_content = confluence_content.replace('# ', '<h1>').replace('\n# ', '</h1>\n<h1>')
+        confluence_content = confluence_content.replace('## ', '<h2>').replace('\n## ', '</h2>\n<h2>')
+        confluence_content = confluence_content.replace('### ', '<h3>').replace('\n### ', '</h3>\n<h3>')
+        confluence_content = confluence_content.replace('#### ', '<h4>').replace('\n#### ', '</h4>\n<h4>')
+        
+        # Convert bold and italic
+        confluence_content = confluence_content.replace('**', '<strong>').replace('**', '</strong>')
+        confluence_content = confluence_content.replace('*', '<em>').replace('*', '</em>')
+        
+        # Convert lists (basic conversion)
+        lines = confluence_content.split('\n')
+        converted_lines = []
+        in_list = False
+        
+        for line in lines:
+            if line.strip().startswith('- '):
+                if not in_list:
+                    converted_lines.append('<ul>')
+                    in_list = True
+                list_item = line.strip()[2:]  # Remove '- '
+                converted_lines.append(f'<li>{list_item}</li>')
+            else:
+                if in_list:
+                    converted_lines.append('</ul>')
+                    in_list = False
+                converted_lines.append(line)
+        
+        if in_list:
+            converted_lines.append('</ul>')
+        
+        confluence_content = '\n'.join(converted_lines)
+        
+        # Convert code blocks (basic)
+        confluence_content = confluence_content.replace('```', '<code>')
+        confluence_content = confluence_content.replace('`', '<code>').replace('`', '</code>')
+        
+        # Add basic structure
+        confluence_content = f'<p>{confluence_content}</p>'
+        confluence_content = confluence_content.replace('\n\n', '</p><p>')
+        
+        return confluence_content
+    
+    def create_page(self, title: str, content: str) -> Optional[str]:
+        """Create a new Confluence page."""
+        try:
+            # Convert markdown to Confluence storage format
+            if content.startswith('#') or '##' in content:
+                storage_content = self.convert_markdown_to_confluence(content)
+            else:
+                # Assume it's already in storage format
+                storage_content = content
+            
+            page_data = {
+                'type': 'page',
+                'title': title,
+                'space': {
+                    'key': self.space_key
+                },
+                'body': {
+                    'storage': {
+                        'value': storage_content,
+                        'representation': 'storage'
+                    }
+                }
+            }
+            
+            response = requests.post(
+                urljoin(self.api_base, 'content'),
+                headers=self.headers,
+                data=json.dumps(page_data),
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                page_url = urljoin(self.confluence_url, result['_links']['webui'])
+                logger.info(f"✅ Page created successfully: {title}")
+                return page_url
+            else:
+                logger.error(f"❌ Failed to create page: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Error creating page: {e}")
+            return None
+    
+    def update_page(self, page_id: str, title: str, content: str, version: int) -> Optional[str]:
+        """Update an existing Confluence page."""
+        try:
+            # Convert markdown to Confluence storage format
+            if content.startswith('#') or '##' in content:
+                storage_content = self.convert_markdown_to_confluence(content)
+            else:
+                storage_content = content
+            
+            page_data = {
+                'id': page_id,
+                'type': 'page',
+                'title': title,
+                'space': {
+                    'key': self.space_key
+                },
+                'body': {
+                    'storage': {
+                        'value': storage_content,
+                        'representation': 'storage'
+                    }
+                },
+                'version': {
+                    'number': version + 1
+                }
+            }
+            
+            response = requests.put(
+                urljoin(self.api_base, f'content/{page_id}'),
+                headers=self.headers,
+                data=json.dumps(page_data),
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                page_url = urljoin(self.confluence_url, result['_links']['webui'])
+                logger.info(f"✅ Page updated successfully: {title}")
+                return page_url
+            else:
+                logger.error(f"❌ Failed to update page: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Error updating page: {e}")
+            return None
+    
+    def upload_content(self, title: str, content: str, content_type: str = 'markdown') -> Optional[str]:
+        """Upload or update content to Confluence."""
+        if not all([self.confluence_url, self.username, self.api_token, self.space_key]):
+            print("❌ Confluence not properly configured")
+            return None
+        
+        try:
+            # Test connection first
+            print("🔗 Testing Confluence connection...")
+            if not self.test_connection():
+                print("❌ Failed to connect to Confluence")
+                return None
+            
+            print(f"📝 Processing content: {title}")
+            
+            # Check if page already exists
+            existing_page = self.find_page_by_title(title)
+            
+            if existing_page:
+                print(f"📄 Updating existing page: {title}")
+                page_url = self.update_page(
+                    existing_page['id'],
+                    title,
+                    content,
+                    existing_page['version']['number']
+                )
+            else:
+                print(f"✨ Creating new page: {title}")
+                page_url = self.create_page(title, content)
+            
+            return page_url
+            
+        except Exception as e:
+            logger.error(f"❌ Upload failed: {e}")
+            print(f"❌ Upload failed: {e}")
+            return None
+
+
+def get_confluence_setup_guide() -> str:
+    """Return setup instructions for Confluence integration."""
+    return """
+## 🔧 Confluence API Setup Guide
+
+### 1. Get Your Confluence Information
+- **Confluence URL**: Your Atlassian site (e.g., https://yourcompany.atlassian.net)
+- **Username**: Your Atlassian email address
+- **Space Key**: The space where you want to publish (find in space settings)
+
+### 2. Create API Token
+1. Go to: https://id.atlassian.com/manage-profile/security/api-tokens
+2. Click "Create API token"
+3. Give it a name (e.g., "Dashboard Documentation")
+4. Copy the token (save it securely!)
+
+### 3. Update Your .env File
+Add these lines to your .env file:
+
+```env
+# Confluence Configuration
+CONFLUENCE_URL=https://yourcompany.atlassian.net
+CONFLUENCE_USERNAME=your-email@company.com
+CONFLUENCE_API_TOKEN=your_api_token_here
+CONFLUENCE_SPACE_KEY=YOURSPACEKEY
+```
+
+### 4. Test Connection
+Run the dashboard analyzer and try option 2 (Confluence publishing).
+
+### 📚 API Documentation
+- **Confluence Cloud REST API**: https://developer.atlassian.com/cloud/confluence/rest/v2/
+- **Authentication Guide**: https://developer.atlassian.com/cloud/confluence/basic-auth-for-rest-apis/
+- **Create Content API**: https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-post
+"""
+
+
+if __name__ == "__main__":
+    # Test the uploader
+    uploader = ConfluenceUploader()
+    print(get_confluence_setup_guide())

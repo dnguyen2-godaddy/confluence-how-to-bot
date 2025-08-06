@@ -1,50 +1,24 @@
-# 🚀 QuickSight & Redshift AI Analytics Platform
+# 🚀 QuickSight Dashboard Image Analyzer
 
-A comprehensive Python application that integrates **AWS QuickSight**, **Redshift**, and **Bedrock** to provide AI-powered business intelligence and dashboard analysis.
+AI-powered tool for analyzing QuickSight dashboard screenshots and automatically generating professional documentation with Confluence integration.
 
 ## ✨ Features
 
-### 🎯 **Complete Analytics Suite**
-- **📊 Redshift Data Querying** - Direct SQL queries with pandas integration
-- **🚀 QuickSight Dashboard Management** - Create, manage, and embed dashboards
-- **🤖 AI Dashboard Analysis** - Analyze QuickSight dashboards with Claude 3.5 Sonnet
-- **🧠 AI Direct Data Analysis** - AI insights directly from your Redshift data
-- **🔧 Connection Testing** - Comprehensive diagnostics for all services
+- 🧠 **AI-Powered Analysis**: Advanced dashboard analysis using AWS Bedrock Claude 3.5 Sonnet
+- 📊 **Business Insights**: Comprehensive business intelligence and recommendations
+- 📈 **Visualization Breakdown**: Detailed analysis of charts, KPIs, and data patterns
+- ⚡ **Technical Assessment**: Performance evaluation and improvement suggestions
+- 📝 **Auto-Documentation**: AI-generated professional how-to guides
+- 🔗 **Confluence Integration**: Direct publishing to Confluence spaces
+- 🔍 **Smart File Detection**: Automatically finds recent images in common locations
 
-### 🏢 **Corporate Ready**
-- ✅ **Works with shared corporate dashboards**
-- ✅ **Temporary AWS credentials support** (ASIA keys + session tokens)
-- ✅ **Enterprise QuickSight environments**
-- ✅ **Cross-account dashboard access**
+## 🚀 Quick Start
 
-### 🤖 **AI-Powered Insights**
-- **Claude 3.5 Sonnet** integration via AWS Bedrock
-- **Comprehensive business analysis** with actionable recommendations
-- **Custom analysis prompts** for focused insights
-- **Detailed JSON reports** with timestamped analysis
+### 1. Installation
 
-## 🛠 **Architecture**
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   AWS Redshift  │    │ AWS QuickSight  │    │  AWS Bedrock    │
-│   Data Source   │────│   Dashboards    │────│   Claude AI     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │  Python App     │
-                    │  Main Interface │
-                    └─────────────────┘
-```
-
-## 🚀 **Quick Start**
-
-### 1. **Environment Setup**
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone <repository-url>
 cd confluence-how-to-bot
 
 # Create virtual environment
@@ -55,199 +29,189 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. **Configure Environment**
-Copy `env.example` to `.env` and fill in your credentials:
+### 2. Configuration
 
 ```bash
+# Copy environment template
 cp env.example .env
+
+# Edit .env with your credentials
+nano .env
 ```
 
-**Required Configuration:**
-```env
-# AWS Configuration
-AWS_ACCESS_KEY_ID=your_access_key_here
-AWS_SECRET_ACCESS_KEY=your_secret_key_here
-AWS_SESSION_TOKEN=your_session_token_here  # For temporary credentials
-AWS_REGION=us-west-2
+Required settings:
+- **AWS Credentials**: For Bedrock AI analysis
+- **Confluence Settings**: For documentation publishing
 
-# Redshift Configuration
-REDSHIFT_HOST=your-redshift-host
-REDSHIFT_DATABASE=your_database
-REDSHIFT_PORT=5439
-REDSHIFT_USER=your_username
-REDSHIFT_PASSWORD=your_password
-```
+### 3. Run the Analyzer
 
-### 3. **Run the Application**
 ```bash
-python main.py
+python dashboard_analyzer.py
 ```
 
-## 📊 **Usage Guide**
+## 📋 Supported Formats
 
-### **Main Menu Options:**
+- ✅ PNG (recommended)
+- ✅ JPG/JPEG
+- ✅ GIF
+- ✅ WebP
+- ✅ BMP
+- ✅ Maximum file size: 10MB
+
+## 🎯 Workflow
+
+1. **📸 Upload Screenshot**: Drag & drop or select dashboard image
+2. **🤖 AI Analysis**: Comprehensive dashboard analysis with AI
+3. **📝 Generate Documentation**: Professional how-to guide creation
+4. **🔗 Publish to Confluence**: Automatic publishing with custom titles
+
+## 📊 Analysis Includes
+
+### 📈 Dashboard Overview
+- Title, purpose, and objectives
+- Design quality and visual hierarchy
+- Layout and visualization arrangement
+
+### 📊 Visualization Breakdown
+- Chart types and data analysis
+- KPIs and performance indicators
+- Time ranges and filters
+- Data sources identification
+
+### 💡 Business Insights
+- Domain analysis (sales, finance, ops, etc.)
+- Trends, patterns, and anomalies
+- Performance indicators
+- Key business metrics
+
+### 🔧 Interactive Features
+- Filter controls and parameters
+- Navigation and drill-down capabilities
+- Cross-filtering relationships
+
+### 🎯 Business Value
+- Target audience identification
+- Decision-making scenarios
+- Use case recommendations
+
+### ⚠️ Technical Assessment
+- Data quality indicators
+- Performance considerations
+- Error detection
+- Mobile responsiveness
+
+### 🚀 Improvement Recommendations
+- Missing visualizations
+- Layout enhancements
+- Additional interactivity
+- Accessibility improvements
+
+## 📁 Project Structure
 
 ```
-🎯 Available Operations:
-1. 📊 Query Redshift data
-2. 🚀 Manage QuickSight dashboards
-3. 🤖 AI Dashboard Analysis (Bedrock)
-4. 🧠 AI Direct Data Analysis (Bedrock)
-5. 🔧 Test connections
-6. ❌ Exit
+confluence-how-to-bot/
+├── dashboard_analyzer.py           # Main application
+├── utils/                         # Supporting utilities
+│   ├── __init__.py
+│   ├── config.py                  # Configuration management
+│   ├── confluence_uploader.py     # Confluence API integration
+│   └── quicksight_manager.py      # QuickSight API utilities
+├── README.md                      # This file
+├── requirements.txt               # Python dependencies
+├── env.example                    # Environment template
+├── DASHBOARD_ANALYZER_README.md   # Detailed usage guide
+├── CONFLUENCE_SETUP.md           # Confluence integration guide
+└── venv/                         # Virtual environment
+
 ```
 
-### **Option 1: Query Redshift Data**
-- Executes predefined scorecard queries
-- Returns pandas DataFrame with results
-- Displays data preview and statistics
+## 🔧 Configuration Files
 
-### **Option 2: QuickSight Management**
-- List all dashboards in your account
-- Generate embed URLs for dashboards
-- Corporate dashboard support
-
-### **Option 3: AI Dashboard Analysis** ⭐
-- **NEW FEATURE**: Works with corporate shared dashboards!
-- Analyzes QuickSight dashboards using AI
-- Provides optimization recommendations
-- Generates detailed analysis reports
-
-### **Option 4: AI Direct Data Analysis**
-- Analyzes Redshift data directly with AI
-- No dashboard required
-- Custom analysis prompts supported
-- Comprehensive business insights
-
-### **Option 5: Connection Testing**
-- Tests Redshift connectivity
-- Validates QuickSight access
-- Verifies Bedrock model availability
-
-## 🔧 **Key Files**
-
-| File | Purpose |
-|------|---------|
-| `main.py` | Main application interface |
-| `fixed_dashboard_analyzer.py` | Corporate dashboard analyzer (NEW!) |
-| `direct_data_analyzer.py` | Direct data analysis with AI |
-| `query_redshift.py` | Redshift data querying |
-| `quicksight_setup.py` | Dashboard creation utilities |
-| `utils/` | Core utility modules |
-
-## 🏢 **Corporate Environment Support**
-
-This application is specifically designed for **corporate AWS environments**:
-
-### ✅ **Supported Scenarios:**
-- **Shared QuickSight dashboards** from other AWS accounts
-- **Corporate SSO** with temporary credentials (ASIA keys)
-- **Enterprise QuickSight** with namespace-based access
-- **Cross-account IAM roles** and permissions
-
-### 🔧 **Technical Approach:**
-- Uses **embed API approach** for shared dashboards
-- Handles **session tokens** for temporary credentials
-- Supports **corporate user ARNs** automatically
-- **Graceful fallbacks** when direct API access is blocked
-
-## 🤖 **AI Analysis Examples**
-
-### **Dashboard Analysis Output:**
-```
-📊 DASHBOARD ANALYSIS REPORT
-================================================================================
-🆔 Dashboard ID: 8c447a9b-b83c-4f80-b53c-0b9f1719c516
-📅 Analysis Date: 2025-07-31T16:40:37
-✅ Access Status: SUCCESS - Accessible via embed URL
-🔧 Method: Corporate embed API approach
-
-🤖 AI Analysis:
-- Dashboard accessibility and configuration review
-- Optimization recommendations for performance
-- Security and governance best practices
-- User experience improvement suggestions
+### AWS Credentials
+```env
+AWS_ACCESS_KEY_ID=your_aws_access_key_here
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
+AWS_SESSION_TOKEN=your_aws_session_token_here  # For Okta/SAML
+AWS_REGION=us-west-2
 ```
 
-### **Direct Data Analysis Output:**
-```
-📊 BUSINESS SCORECARD ANALYSIS
-================================================================================
-📈 Data Records: 245
-📊 Business Units: 1 (CARE & SERVICES)
-📋 Metrics: 9 key performance indicators
-
-🤖 AI Analysis:
-- Performance metrics and trends analysis
-- Target vs actual comparison
-- Cost optimization opportunities
-- Strategic recommendations
+### Confluence Integration
+```env
+CONFLUENCE_URL=https://your-company.atlassian.net
+CONFLUENCE_USERNAME=your-email@company.com
+CONFLUENCE_API_TOKEN=your_confluence_api_token_here
+CONFLUENCE_SPACE_KEY=YOUR_SPACE_KEY
 ```
 
-## 🛡 **Security Features**
+## 📚 Documentation
 
-- **Environment variable protection** (`.env` excluded from git)
-- **Credential rotation support** for temporary AWS credentials
-- **Session token handling** for enterprise environments
-- **Secure embed URL generation** with configurable timeouts
-- **Access logging** and audit trail capabilities
+- **[Dashboard Analyzer Guide](DASHBOARD_ANALYZER_README.md)** - Detailed usage instructions
+- **[Confluence Setup Guide](CONFLUENCE_SETUP.md)** - Complete Confluence integration setup
 
-## 📋 **Requirements**
+## 🛠️ Dependencies
 
-### **AWS Services:**
-- **AWS Redshift** (Serverless or Provisioned)
-- **AWS QuickSight** (Author/Admin permissions recommended)
-- **AWS Bedrock** (Claude model access required)
+- **boto3** - AWS SDK for Bedrock AI
+- **requests** - HTTP library for Confluence API
+- **python-dotenv** - Environment variable management
 
-### **Python Dependencies:**
+## 🎯 Use Cases
+
+- **Business Intelligence Teams**: Analyze dashboard effectiveness
+- **Training & Documentation**: Create user guides for dashboards  
+- **Dashboard Audits**: Technical assessment and improvement recommendations
+- **Knowledge Management**: Centralized dashboard documentation in Confluence
+
+## 🔐 Security
+
+- Environment-based credential management
+- Secure API token handling
+- No hardcoded credentials in code
+- AWS IAM best practices
+
+## 📈 Example Output
+
+```markdown
+# 📊 Dashboard User Guide: Sales Performance Scorecard
+
+## 🎯 Purpose & Overview
+This dashboard tracks key sales metrics and KPIs for the sales organization...
+
+## 🚀 Getting Started
+### Accessing the Dashboard
+1. Navigate to QuickSight in your browser
+2. Select the "Sales Performance" dashboard
+...
+
+## 📊 Understanding the Visualizations
+### Revenue Trend Chart
+- **What it shows:** Monthly revenue progression
+- **How to read it:** Green indicates growth, red shows decline
+...
 ```
-pandas==2.3.1
-redshift_connector==2.1.8
-python-dotenv==1.1.1
-boto3==1.39.17
-botocore==1.39.17
-requests==2.32.4
-openai==1.12.0
-atlassian-python-api==3.41.14
-jinja2==3.1.3
-markdown==3.5.2
-```
 
-## 🚨 **Troubleshooting**
+## 🚀 Advanced Features
 
-### **Common Issues:**
+- **Smart Recent File Detection**: Automatically finds images in Desktop, Downloads, Pictures
+- **Interactive Selection**: Choose from numbered list or enter custom path
+- **Enhanced Error Handling**: Helpful error messages with solutions
+- **Rich Output**: Professional reports with emojis and structured sections
+- **Batch Processing**: Analyze multiple dashboards efficiently
 
-**❌ "Dashboard not found"**
-- Check if you're using the correct dashboard ID
-- Verify the dashboard is accessible via QuickSight web interface
-- For shared dashboards, ensure you have embed permissions
+## 💡 Tips for Best Results
 
-**❌ "Invalid security token"**
-- Refresh your AWS temporary credentials
-- Ensure `AWS_SESSION_TOKEN` is included for ASIA keys
-- Check credential expiration time
+- **Capture full dashboard view** including titles and legends
+- **Ensure text is readable** at screenshot resolution
+- **Use PNG format** for best quality
+- **Include interactive elements** (filters, controls) in screenshot
+- **Take screenshots at full resolution** for detailed analysis
 
-**❌ "Unable to route to Redshift"**
-- Verify Redshift endpoint accessibility
-- Check security group configurations
-- Ensure QuickSight has network access to Redshift
+## 📞 Support
 
-### **Getting Help:**
-1. Check the **connection testing** option (Option 5)
-2. Review AWS IAM permissions
-3. Verify network connectivity between services
-
-## 🎯 **Next Steps**
-
-1. **Explore AI Analysis**: Try both dashboard and direct data analysis
-2. **Custom Prompts**: Experiment with specific analysis focuses
-3. **Integration**: Embed insights into your business workflows
-4. **Scaling**: Set up automated analysis schedules
-
-## 📝 **License**
-
-This project is designed for internal business intelligence use. Please ensure compliance with your organization's AWS usage policies.
+For issues or questions:
+1. Check the troubleshooting sections in documentation files
+2. Verify your AWS credentials and Confluence permissions
+3. Ensure image files meet format and size requirements
 
 ---
 
-**🚀 Ready to unlock AI-powered insights from your QuickSight dashboards and Redshift data!**
+*Powered by AWS Bedrock and Claude 3.5 Sonnet AI*
