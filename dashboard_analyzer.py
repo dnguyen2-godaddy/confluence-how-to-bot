@@ -79,10 +79,20 @@ def generate_documentation_with_ai(prompt: str, is_multi_image: bool = False) ->
 
 def create_unified_documentation_prompt(analysis_content: str, is_multi_image: bool = False) -> str:
     """Create a unified documentation prompt for both single and multi-image analysis."""
-    analysis_type = "multiple screenshots of a single large dashboard" if is_multi_image else "dashboard screenshot"
     
-    return f"""
-Create professional QuickSight dashboard documentation using the analysis below. Output ONLY the documentation content with no extra commentary.
+    # Define conditional content to avoid backslashes in f-strings
+    synthesis_note = " synthesized from all screenshots" if is_multi_image else ""
+    analytics_type = "multiple sections" if is_multi_image else "specialized views"
+    section_header = "**Dashboard Navigation**" if is_multi_image else "**Key Features**"
+    
+    if is_multi_image:
+        section_content = "[Explain how sections work together and navigation flow within the dashboard]"
+    else:
+        section_content = """• **[Feature 1]** - [Description and business value]
+• **[Feature 2]** - [Description and business value]
+• **[Feature 3]** - [Description and business value]"""
+    
+    return f"""Create professional QuickSight dashboard documentation using the analysis below. Output ONLY the documentation content with no extra commentary.
 
 ANALYSIS INPUT:
 {analysis_content}
@@ -98,19 +108,19 @@ OUTPUT FORMAT (copy this structure exactly):
 
 **Objective**
 
-[Clear paragraph explaining dashboard purpose, business value, and strategic importance{'synthesized from all screenshots' if is_multi_image else ''}]
+[Clear paragraph explaining dashboard purpose, business value, and strategic importance{synthesis_note}]
 
 **Dashboard Overview**
 
-[Dashboard name] provides comprehensive analytics through {'multiple sections' if is_multi_image else 'specialized views'}:
+[Dashboard name] provides comprehensive analytics through {analytics_type}:
 
 • **[Section 1]** - [Purpose and key metrics]
 • **[Section 2]** - [Purpose and key metrics]
 • **[Section 3]** - [Purpose and key metrics]
 
-{'**Dashboard Navigation**' if is_multi_image else '**Key Features**'}
+{section_header}
 
-{'[Explain how sections work together and navigation flow within the dashboard]' if is_multi_image else '• **[Feature 1]** - [Description and business value]\n• **[Feature 2]** - [Description and business value]\n• **[Feature 3]** - [Description and business value]'}
+{section_content}
 
 **Detailed Analysis**
 
@@ -141,8 +151,7 @@ OUTPUT FORMAT (copy this structure exactly):
 • **Coverage:** [Time periods available]
 • **Export Options:** [Available formats]
 
-OUTPUT ONLY THE DOCUMENTATION - NO INTRODUCTORY TEXT OR EXPLANATIONS.
-    """
+OUTPUT ONLY THE DOCUMENTATION - NO INTRODUCTORY TEXT OR EXPLANATIONS."""
 
 
 def validate_image_file(image_path: str) -> tuple[bool, str]:
