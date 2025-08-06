@@ -114,8 +114,11 @@ confluence-how-to-bot/
 ├── utils/                         # Supporting utilities
 │   ├── __init__.py
 │   ├── config.py                  # Configuration management
-│   ├── confluence_uploader.py     # Confluence API integration
-│   └── quicksight_manager.py      # QuickSight API utilities
+│   └── confluence_uploader.py     # Confluence API integration
+├── outputs/                       # Generated analysis files
+│   ├── .gitkeep                   # Keeps directory in git
+│   ├── dashboard_analysis_*.md    # AI analysis reports
+│   └── dashboard_howto_*.md       # Generated documentation
 ├── README.md                      # This file
 ├── requirements.txt               # Python dependencies
 ├── env.example                    # Environment template

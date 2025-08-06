@@ -194,7 +194,10 @@ For each chart/visual, identify:
         # Generate filename based on image name and timestamp
         image_basename = os.path.splitext(os.path.basename(image_path))[0]
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_filename = f"dashboard_analysis_{image_basename}_{timestamp}.md"
+        
+        # Ensure outputs directory exists
+        os.makedirs("outputs", exist_ok=True)
+        output_filename = f"outputs/dashboard_analysis_{image_basename}_{timestamp}.md"
         
         # Create enhanced markdown output
         with open(output_filename, 'w', encoding='utf-8') as f:
@@ -409,10 +412,13 @@ Create documentation that would help a new user become proficient with this dash
         response_body = json.loads(response['body'].read())
         documentation_text = response_body['content'][0]['text']
         
-        # Generate filename
+        # Generate filename  
         image_basename = os.path.splitext(os.path.basename(image_path))[0]
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        doc_filename = f"dashboard_howto_{image_basename}_{timestamp}.md"
+        
+        # Ensure outputs directory exists
+        os.makedirs("outputs", exist_ok=True)
+        doc_filename = f"outputs/dashboard_howto_{image_basename}_{timestamp}.md"
         
         # Create comprehensive documentation file
         with open(doc_filename, 'w', encoding='utf-8') as f:

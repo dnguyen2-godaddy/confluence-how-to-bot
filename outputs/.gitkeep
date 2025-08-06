@@ -1,0 +1,13 @@
+# Generated Files Output Directory
+
+This directory contains all generated analysis and documentation files:
+
+## File Types Generated:
+- `dashboard_analysis_*.md` - AI analysis reports
+- `dashboard_howto_*.md` - User guide documentation
+
+## Automatic Cleanup:
+Files are automatically organized by timestamp for easy management.
+
+## Note:
+This directory is tracked in git to ensure it exists, but generated files are ignored to keep the repository clean.
