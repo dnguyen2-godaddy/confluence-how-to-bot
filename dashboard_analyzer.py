@@ -102,6 +102,7 @@ For each chart/visual, identify:
 - Key performance indicators (KPIs)
 - Time ranges or date filters visible
 - Data sources or datasets (if identifiable)
+- Specific metric names and exact values shown
 
 ## 💡 KEY BUSINESS INSIGHTS
 - Primary business domain (sales, finance, operations, marketing, etc.)
@@ -111,11 +112,17 @@ For each chart/visual, identify:
 - Top performers and areas of concern
 
 ## 🔧 INTERACTIVE FEATURES
-- Filter controls and parameter selections
+- Filter controls and parameter selections (REPORT EXACT VALUES VISIBLE)
 - Drill-down capabilities
 - Navigation elements
 - Date/time selectors
 - Cross-filtering relationships
+
+## 📑 MULTI-TAB ANALYSIS
+- If multiple tabs are visible (e.g., Scorecard + SLAs), identify each tab name
+- Note the currently active tab
+- Describe purpose of each visible tab
+- Identify any navigation links or buttons
 
 ## 🎯 BUSINESS VALUE & USE CASES
 - Primary audience (executives, analysts, operations teams)
@@ -137,7 +144,16 @@ For each chart/visual, identify:
 - Data storytelling improvements
 - Accessibility considerations
 
-**Focus on practical, implementable insights that would help dashboard users and creators optimize this QuickSight dashboard for maximum business impact.**
+**CRITICAL ACCURACY REQUIREMENTS:**
+- Report ONLY filter names and values that are clearly visible in the screenshot
+- Do NOT assume or hallucinate filter settings (e.g., don't say "US" if you see "Overall")
+- List exact tab names if multiple tabs are present
+- Identify specific visualization types and their exact data
+- Note any URLs, links, or navigation elements visible
+- Be precise about metric names, values, and time periods shown
+- If something is unclear or not visible, state that explicitly rather than guessing
+
+**Focus on practical, implementable insights based ONLY on what you can clearly see in the image.**
         """
         
         # Initialize Bedrock client
@@ -259,6 +275,34 @@ For each chart/visual, identify:
         return None
 
 
+def add_screenshot_references(documentation: str, image_path: str) -> str:
+    """
+    Add screenshot reference information to documentation.
+    This function can be enhanced to include actual screenshot cropping and annotations.
+    """
+    # For now, add image reference information
+    screenshot_note = f"""
+## 📸 Screenshot Reference
+**Original Dashboard Image:** `{image_path}`
+
+*Note: For each visualization described below, refer to the original screenshot to see the exact layout and visual elements.*
+
+---
+
+"""
+    
+    # Insert after the first heading
+    lines = documentation.split('\n')
+    insert_index = 1
+    for i, line in enumerate(lines):
+        if line.startswith('## 🎯 Purpose & Overview'):
+            insert_index = i
+            break
+    
+    lines.insert(insert_index, screenshot_note)
+    return '\n'.join(lines)
+
+
 def generate_dashboard_documentation(analysis_file: str, image_path: str) -> Optional[str]:
     """Generate user-friendly how-to documentation from dashboard analysis."""
     try:
@@ -284,40 +328,49 @@ Based on the following dashboard analysis, create comprehensive how-to documenta
 ## 🎯 Purpose & Overview
 - What this dashboard is for
 - Who should use it
-- Key business questions it answers
+- Primary business questions answered by this dashboard
 - When to use it (daily, weekly, monthly monitoring)
 
-## 🚀 Getting Started
-### Accessing the Dashboard
-- How to find and open the dashboard
-- Required permissions or access levels
-- Browser requirements and recommendations
-
-### Navigation Basics
-- Dashboard layout orientation
-- Main sections and their purposes
-- How to scroll and view all content
+## 🎯 Key Business Questions Answered
+- List 3-5 specific business questions this dashboard helps answer
+- Include the business value of each question
+- Connect to decision-making scenarios
 
 ## 📊 Understanding the Visualizations
-### [For each major visualization, create a section like this:]
-#### Visualization Name/Type
-- **What it shows:** Clear explanation of the data
-- **How to read it:** Step-by-step interpretation guide
-- **Key metrics:** What numbers to focus on
-- **Color coding:** What colors mean (green=good, red=alert, etc.)
-- **Normal ranges:** What values are typical vs concerning
+*For each major visualization, create a detailed section with this format:*
+
+### [Visualization Name] 
+**📸 Screenshot Reference:** [Note location in dashboard - e.g., "Top-left table", "Bottom charts", "Right panel"]
+
+**What it shows:** Clear explanation of the data and purpose
+
+**How to read it:** 
+- Step-by-step interpretation guide
+- Key metrics to focus on
+- Color coding meaning (green=good, red=alert, etc.)
+- Normal ranges and concerning values
+- Interactive elements within this visualization
+
+**Business Context:**
+- Why this visualization matters
+- What actions to take based on the data
 
 ## 🔧 Interactive Features
 ### Filters and Controls
+- List exact filter names from the analysis (avoid assumptions)
 - How to use date selectors
-- How to apply filters
-- How to reset or clear filters
-- How filters affect multiple charts
+- How to apply and clear filters
+- Default values and recommended settings
+
+### Multi-Tab Navigation (if applicable)
+- Tab names and purposes (e.g., Scorecard + SLAs)
+- How to navigate between tabs
+- Links between related views
 
 ### Drill-Down Capabilities
-- Which visualizations allow drill-down
-- How to click/interact for more detail
-- How to navigate back to overview
+- Where drill-down is available
+- How to access detailed views
+- How to navigate back to summary level
 
 ## 📈 Key Performance Indicators (KPIs)
 ### Primary Metrics
@@ -420,9 +473,12 @@ Create documentation that would help a new user become proficient with this dash
         os.makedirs("outputs", exist_ok=True)
         doc_filename = f"outputs/dashboard_howto_{image_basename}_{timestamp}.md"
         
+        # Enhance documentation with screenshot references
+        enhanced_documentation = add_screenshot_references(documentation_text, image_path)
+        
         # Create comprehensive documentation file
         with open(doc_filename, 'w', encoding='utf-8') as f:
-            f.write(documentation_text)
+            f.write(enhanced_documentation)
             f.write(f"\n\n---\n\n")
             f.write(f"**📁 Original Image:** `{image_path}`\n")
             f.write(f"**📄 Analysis Source:** `{analysis_file}`\n")
