@@ -390,52 +390,25 @@ class ConfluenceUploader:
             return None
     
     def _embed_images_in_content(self, content: str, image_embeds: list) -> str:
-        """Embed images into the content at appropriate locations."""
+        """Embed images into the content at the very end."""
         try:
             # Convert content to lines for easier manipulation
             lines = content.split('\n')
-            enhanced_lines = []
+            enhanced_lines = list(lines)  # Copy all lines first
             
-            # Add images at the beginning after the Objective section
-            image_section_added = False
-            
-            for i, line in enumerate(lines):
-                enhanced_lines.append(line)
-                
-                # Add images section after the Objective section
-                if not image_section_added and line.strip() and not line.startswith('**') and i > 0:
-                    if lines[i-1].strip() == '**Objective**' or 'objective' in line.lower():
-                        # Add a dashboard screenshots section
-                        enhanced_lines.extend([
-                            '',
-                            '**Dashboard Screenshots**',
-                            ''
-                        ])
-                        
-                        # Add each image with a descriptive header
-                        for j, img_info in enumerate(image_embeds, 1):
-                            enhanced_lines.extend([
-                                f"**View {j}: {img_info['filename'].replace('.png', '').replace('Screenshot ', '')}**",
-                                '',
-                                img_info['embed'],
-                                ''
-                            ])
-                        
-                        image_section_added = True
-                        enhanced_lines.append('')  # Add spacing
-            
-            # If we didn't find a good place to insert, add at the end before any footer
-            if not image_section_added and image_embeds:
-                # Find the last substantive content line
+            # Always add images at the very end, before any footer
+            if image_embeds:
+                # Find the last substantive content line (before footer)
                 insert_index = len(enhanced_lines)
                 for i in range(len(enhanced_lines) - 1, -1, -1):
-                    if enhanced_lines[i].strip() and not enhanced_lines[i].startswith('**Documentation Information**'):
+                    line = enhanced_lines[i].strip()
+                    if line and not line.startswith('---') and not line.startswith('*This documentation was automatically'):
                         insert_index = i + 1
                         break
                 
-                # Insert images section
+                # Insert images section at the end
                 enhanced_lines.insert(insert_index, '')
-                enhanced_lines.insert(insert_index + 1, '**Dashboard Screenshots**')
+                enhanced_lines.insert(insert_index + 1, '<h2>Dashboard Screenshots</h2>')
                 enhanced_lines.insert(insert_index + 2, '')
                 
                 insert_pos = insert_index + 3

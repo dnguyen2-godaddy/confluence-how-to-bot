@@ -6,11 +6,12 @@ Upload and analyze QuickSight dashboard screenshots with AI-powered insights.
 """
 
 import base64
+import glob
 import json
 import logging
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Dict, List, Optional
 
 import boto3
 from dotenv import load_dotenv
@@ -36,122 +37,114 @@ def get_bedrock_client():
     )
 
 
-def generate_documentation_with_ai(prompt: str, is_multi_image: bool = False) -> Optional[str]:
-    """Generate documentation using Bedrock AI with a unified prompt structure."""
-    try:
-        print("🤖 Generating professional documentation with AI...")
-        
-        bedrock = get_bedrock_client()
-        
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    }
-                ]
-            }
-        ]
-        
-        body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 6000 if is_multi_image else 4000,
-            "messages": messages,
-            "temperature": 0.1
-        }
-        
-        response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
-            body=json.dumps(body),
-            contentType='application/json'
-        )
-        
-        response_body = json.loads(response['body'].read())
-        return response_body['content'][0]['text']
-        
-    except Exception as e:
-        logger.error(f"❌ AI documentation generation failed: {e}")
-        print(f"❌ AI documentation generation failed: {e}")
-        return None
 
-
-def create_unified_documentation_prompt(analysis_content: str, is_multi_image: bool = False) -> str:
-    """Create a unified documentation prompt for both single and multi-image analysis."""
+def create_unified_prompt(is_multi_image: bool = False) -> str:
+    """Create a unified prompt for dashboard analysis and documentation generation."""
     
-    # Define conditional content to avoid backslashes in f-strings
-    synthesis_note = " synthesized from all screenshots" if is_multi_image else ""
-    analytics_type = "multiple sections" if is_multi_image else "specialized views"
-    section_header = "**Dashboard Navigation**" if is_multi_image else "**Key Features**"
+    # Define conditional content  
+    multi_note = " across multiple dashboard sections" if is_multi_image else ""
     
-    if is_multi_image:
-        section_content = "[Explain how sections work together and navigation flow within the dashboard]"
-    else:
-        section_content = """• **[Feature 1]** - [Description and business value]
-• **[Feature 2]** - [Description and business value]
-• **[Feature 3]** - [Description and business value]"""
-    
-    return f"""Create professional QuickSight dashboard documentation using the analysis below. Output ONLY the documentation content with no extra commentary.
+    return f"""You are a business intelligence expert creating documentation guidelines for GoDaddy stakeholders. Analyze the dashboard images to understand the objective, information/products it conveys, and how it helps users/stakeholders.
 
-ANALYSIS INPUT:
-{analysis_content}
+INSTRUCTIONS:
+Create professional documentation that data analysts at GoDaddy will use to help their stakeholders understand how to use their dashboards. Focus on practical usage and navigation guidance for business users.
 
-FORMATTING REQUIREMENTS:
-- Use ONLY bold text for headings (**Heading**) - NO markdown # symbols
-- Use bullet points (•) for lists
-- Write in professional third person
-- No emojis or casual language
-- Include specific metrics and numbers where available
+ANALYSIS REQUIREMENTS:
+- Carefully examine all visible filters, dropdowns, buttons, and interactive elements in the dashboard images
+- Note specific control names, field names, and options visible in the interface
+- Identify clickable elements, drill-down capabilities, and navigation features
+- Report ONLY what is clearly visible in the screenshots - do not make assumptions
 
-OUTPUT FORMAT (copy this structure exactly):
+CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
+- MANDATORY: Use ONLY the exact structure provided below - NO other sections allowed
+- FORBIDDEN: Do NOT create sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations", "Interactive Features", "Usage Guidelines"
+- REQUIRED SECTIONS ONLY: Objective, New Enhanced View, New Additions, Detailed Overview (numbered 1-5), Dashboard Controls, How tos
+- Use <h2> for main sections (Objective, New Enhanced View, etc.)
+- Use <h3> for numbered detailed views (1., 2., 3., 4., 5.)
+- Use <strong>bold text</strong> for subsection names: <strong>Metrics Reported</strong>, <strong>Data Source</strong>, <strong>View Specific Drill Down Control</strong>
+- CRITICAL: Follow the template structure word-for-word - do not add extra sections
+- Write in professional business language for GoDaddy stakeholders
 
-**Objective**
+CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
+- OUTPUT ONLY THE DOCUMENTATION using the EXACT structure above
+- START with "<h2>Objective</h2>" immediately - no other content before it
+- NO EXTRA LINE BREAKS: Content must follow immediately after each header tag
+- CRITICAL: After <h2>Objective</h2> the next line must be the explanation text with NO blank line in between
+- INCLUDE ALL sections in the exact order: Objective → New Enhanced View → New Additions → Detailed Overview → Dashboard Controls → How tos
+- FORBIDDEN: Do NOT create any sections not shown in the template
+- FORBIDDEN: Do NOT use sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations"
+- MANDATORY: Use the 5 numbered detailed views (<h3>1., <h3>2., <h3>3., <h3>4., <h3>5.)
+- NO introductory text, explanations, or template deviations allowed
 
-[Clear paragraph explaining dashboard purpose, business value, and strategic importance{synthesis_note}]
+OUTPUT FORMAT (copy this structure exactly - NO BLANK LINES between headers and content):
 
-**Dashboard Overview**
-
-[Dashboard name] provides comprehensive analytics through {analytics_type}:
-
-• **[Section 1]** - [Purpose and key metrics]
-• **[Section 2]** - [Purpose and key metrics]
-• **[Section 3]** - [Purpose and key metrics]
-
-{section_header}
-
-{section_content}
-
-**Detailed Analysis**
-
-**[Section 1 Name]**
-[Comprehensive analysis of functionality, metrics, and business applications]
-
-**[Section 2 Name]**
-[Detailed breakdown of functionality, metrics, and business applications]
-
-**[Section 3 Name]**
-[Complete analysis of functionality, metrics, and business applications]
-
-**Key Metrics**
-
-• **[Metric 1]** - [Definition and business significance]
-• **[Metric 2]** - [Definition and business significance]
-• **[Metric 3]** - [Definition and business significance]
-
-**Usage Guidelines**
-
-• Navigate between sections using [specific method]
-• Apply filters through [process description]
-• Export data via [available options]
-
-**Technical Information**
-
-• **Data Refresh:** [Update frequency]
-• **Coverage:** [Time periods available]
-• **Export Options:** [Available formats]
-
-OUTPUT ONLY THE DOCUMENTATION - NO INTRODUCTORY TEXT OR EXPLANATIONS."""
+<h2>Objective</h2>
+[Explain the dashboard's purpose in 2-3 sentences. What business problems does it solve and how does it help GoDaddy stakeholders make informed decisions{multi_note}]
+<h2>New Enhanced [Dashboard Name] View</h2>
+The <strong>[Dashboard Name]</strong> in QuickSight has the following views:
+1. [View 1 Name]
+2. [View 2 Name] 
+3. [View 3 Name]
+4. [View 4 Name]
+5. [View 5 Name]
+For <strong>[Dashboard Name]</strong> in QuickSight, you can also navigate to [X] other additional views for additional insights:
+1. [Additional View 1]
+2. [Additional View 2]
+All these views are discussed in detail below.
+<h2>New Additions, Features and Changes</h2>
+Unlike the previous version, the new enhanced version of [Dashboard Name] in QuickSight has several additional metrics and features:
+1. <strong>Faster Loading:</strong> [Description of performance improvements]
+2. <strong>Consolidated Dashboard View:</strong> [Description of view consolidation]
+3. <strong>Enhanced [Feature] Diagnostics:</strong> [Description of diagnostic improvements]
+4. <strong>Future Period Pacing:</strong> [Description of pacing features]
+5. <strong>Prior [Metric] Tracking:</strong> [Description of tracking capabilities]
+6. <strong>[Metric] ML Momentum View:</strong> [Description of ML features]
+7. <strong>Controls:</strong> [Description of control improvements]
+<h2>Detailed Overview of Each View</h2>
+<h3>1. [View 1 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+3. [Metric 3]: [Description of what it measures]
+<strong>View Specific Drill Down Control</strong>
+[Description of available drill-down options and controls]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h3>2. [View 2 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h3>3. [View 3 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h3>4. [View 4 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h3>5. [View 5 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h2>Dashboard Controls</h2>
+[List and describe the specific filters, dropdowns, date selectors, and other controls visible in the dashboard images. Include their exact names and locations as shown in the screenshots.]
+<h2>How tos:</h2>
+[Based on what you see in the dashboard images, provide specific step-by-step instructions for using THIS dashboard. Include actual filter names, button locations, and specific features visible in the screenshots. Make this practical and actionable for users of this specific dashboard.]
+[Include all images used, in-ligned with text and document.]
+"""
 
 
 def validate_image_file(image_path: str) -> tuple[bool, str]:
@@ -180,9 +173,9 @@ def validate_image_file(image_path: str) -> tuple[bool, str]:
 
 
 def analyze_dashboard_image(image_path: str) -> Optional[str]:
-    """Analyze a QuickSight dashboard image with enhanced AI insights."""
+    """Generate dashboard documentation directly from image analysis."""
     try:
-        logger.info(f"🖼️ Starting dashboard image analysis: {image_path}")
+        logger.info(f"Starting dashboard image analysis: {image_path}")
         
         # Validate image file
         is_valid, message = validate_image_file(image_path)
@@ -192,7 +185,7 @@ def analyze_dashboard_image(image_path: str) -> Optional[str]:
         
         image_path = image_path.strip().strip('"').strip("'")  # Clean path
         print(f"✅ {message}")
-        print("📖 Reading and processing image...")
+        print("Reading and processing image...")
         
         # Read and encode image
         with open(image_path, 'rb') as image_file:
@@ -211,83 +204,11 @@ def analyze_dashboard_image(image_path: str) -> Optional[str]:
         }
         media_type = media_type_map.get(file_ext, 'image/jpeg')
         
-        # Enhanced AI analysis prompt for QuickSight dashboards
-        analysis_prompt = """
-You are an expert business intelligence analyst specializing in QuickSight dashboard analysis and data visualization best practices.
-
-Analyze this QuickSight dashboard screenshot and provide comprehensive, actionable insights.
-
-**ANALYSIS STRUCTURE:**
-
-## 📊 DASHBOARD OVERVIEW
-- Dashboard title, purpose, and main objective
-- Overall design quality and visual hierarchy
-- Number and arrangement of visualizations
-- Brand/styling consistency
-
-## 📈 VISUALIZATION BREAKDOWN
-For each chart/visual, identify:
-- Chart type (bar, line, pie, table, gauge, etc.)
-- Data dimensions and measures displayed
-- Key performance indicators (KPIs)
-- Time ranges or date filters visible
-- Data sources or datasets (if identifiable)
-- Specific metric names and exact values shown
-
-## 💡 KEY BUSINESS INSIGHTS
-- Primary business domain (sales, finance, operations, marketing, etc.)
-- Critical trends, patterns, or anomalies
-- Performance indicators (meeting/missing targets)
-- Seasonal patterns or time-based trends
-- Top performers and areas of concern
-
-## 🔧 INTERACTIVE FEATURES
-- Filter controls and parameter selections (REPORT EXACT VALUES VISIBLE)
-- Drill-down capabilities
-- Navigation elements
-- Date/time selectors
-- Cross-filtering relationships
-
-## 📑 MULTI-TAB ANALYSIS
-- If multiple tabs are visible (e.g., Scorecard + SLAs), identify each tab name
-- Note the currently active tab
-- Describe purpose of each visible tab
-- Identify any navigation links or buttons
-
-## 🎯 BUSINESS VALUE & USE CASES
-- Primary audience (executives, analysts, operations teams)
-- Key business questions this dashboard answers
-- Decision-making scenarios it supports
-- Frequency of use (daily monitoring, weekly reviews, etc.)
-
-## ⚠️ TECHNICAL ASSESSMENT
-- Data quality indicators
-- Completeness of information
-- Loading states or errors visible
-- Performance considerations
-- Mobile responsiveness (if apparent)
-
-## 🚀 IMPROVEMENT RECOMMENDATIONS
-- Missing visualizations that would add value
-- Layout or design enhancements
-- Additional filters or interactivity
-- Data storytelling improvements
-- Accessibility considerations
-
-**CRITICAL ACCURACY REQUIREMENTS:**
-- Report ONLY filter names and values that are clearly visible in the screenshot
-- Do NOT assume or hallucinate filter settings (e.g., don't say "US" if you see "Overall")
-- List exact tab names if multiple tabs are present
-- Identify specific visualization types and their exact data
-- Note any URLs, links, or navigation elements visible
-- Be precise about metric names, values, and time periods shown
-- If something is unclear or not visible, state that explicitly rather than guessing
-
-**Focus on practical, implementable insights based ONLY on what you can clearly see in the image.**
-        """
+        # Use unified prompt for direct documentation generation
+        unified_prompt = create_unified_prompt(is_multi_image=False)
         
         # Initialize Bedrock client
-        print("🤖 Connecting to AWS Bedrock AI...")
+        print("Connecting to AWS Bedrock AI...")
         bedrock = get_bedrock_client()
         
         # Prepare Bedrock request with image
@@ -307,7 +228,7 @@ For each chart/visual, identify:
                     },
                     {
                         "type": "text",
-                        "text": analysis_prompt
+                        "text": unified_prompt
                     }
                 ]
             }
@@ -331,29 +252,56 @@ For each chart/visual, identify:
         response_body = json.loads(response['body'].read())
         analysis_text = response_body['content'][0]['text']
         
+        # Remove extra spacing after header tags
+        analysis_text = analysis_text.replace('<h2>Objective</h2>\n\n', '<h2>Objective</h2>\n')
+        analysis_text = analysis_text.replace('<h2>Objective</h2>\n ', '<h2>Objective</h2>\n')
+        analysis_text = analysis_text.replace('<h3>', '\n<h3>')  # Ensure h3 tags have proper spacing
+        
         # Generate filename based on image name and timestamp
         image_basename = os.path.splitext(os.path.basename(image_path))[0]
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Ensure outputs directory exists
+        # Ensure outputs and images directories exist
         os.makedirs("outputs", exist_ok=True)
-        output_filename = f"outputs/dashboard_analysis_{image_basename}_{timestamp}.md"
+        os.makedirs("outputs/images", exist_ok=True)
+        output_filename = f"outputs/dashboard_howto_{image_basename}_{timestamp}.md"
         
-        # Create enhanced markdown output
-        with open(output_filename, 'w', encoding='utf-8') as f:
-            f.write(f"# 📊 QuickSight Dashboard Analysis Report\n\n")
-            f.write(f"**📁 Image Source:** `{image_path}`\n")
-            f.write(f"**📅 Analysis Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"**🖼️ Image Format:** {media_type}\n")
-            f.write(f"**🤖 AI Model:** Claude 3.5 Sonnet (AWS Bedrock)\n\n")
-            f.write("---\n\n")
+        # Copy source image to outputs/images for embedding
+        import shutil
+        image_name = os.path.basename(image_path)
+        dest_path = f"outputs/images/{image_name}"
+        try:
+            shutil.copy2(image_path, dest_path)
+            print(f"Copied image: {image_name}")
+        except Exception as e:
+            print(f"⚠️ Could not copy {image_name}: {e}")
+        
+        # Create Markdown documentation with center alignment for Confluence
+        markdown_filename = output_filename  # Keep .md extension
+        with open(markdown_filename, 'w', encoding='utf-8') as f:
+            # Write centered title without metadata table
+            f.write('<div style="text-align: center; max-width: 800px; margin: 0 auto;">\n\n')
+            f.write("<h1>Dashboard User Guide</h1>\n")
+            
+            # Main documentation content
             f.write(analysis_text)
-            f.write(f"\n\n---\n\n")
-            f.write(f"*Report generated by QuickSight Dashboard Image Analyzer*\n")
-            f.write(f"*Analysis powered by AWS Bedrock AI*\n")
+            f.write("\n\n")
+            
+            # Add screenshots section at the end
+            f.write("<h2>Dashboard Screenshots</h2>\n\n")
+            image_name = os.path.basename(image_path)
+            f.write(f"**Screenshot Analysis Date:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
+            f.write(f"*Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis*\n\n")
+            
+            # Clean footer
+            f.write("---\n\n")
+            f.write("*This documentation was automatically generated using AI analysis.*\n")
+            f.write("*For questions or updates, please contact the BI team.*\n\n")
+            f.write("</div>")
         
-        logger.info(f"✅ Analysis completed and saved to: {output_filename}")
-        print(f"💾 Analysis saved to: {output_filename}")
+        logger.info(f"✅ Analysis completed and saved to: {markdown_filename}")
+        print(f"💾 Markdown documentation saved to: {markdown_filename}")
+        print(f"Ready for Confluence import!")
         
         # Show a preview of key insights
         print("\n🔍 Quick Preview:")
@@ -367,7 +315,7 @@ For each chart/visual, identify:
                 section_count += 1
                 preview_lines.append(f"  {line.strip()}")
             elif line.strip() and section_count <= 3 and len(preview_lines) < 15:
-                if line.strip().startswith('-'):
+                if line.strip().startswith('**') or line.strip().startswith('1.') or line.strip().startswith('-'):
                     preview_lines.append(f"    {line.strip()}")
                 elif not line.strip().startswith('#'):
                     preview_lines.append(f"  {line.strip()}")
@@ -378,9 +326,9 @@ For each chart/visual, identify:
         if len(preview_lines) > 12:
             print("  ...")
         
-        print(f"\n📖 View complete analysis: {output_filename}")
+        print(f"\n📖 View complete analysis: {markdown_filename}")
         
-        return output_filename
+        return markdown_filename
         
     except Exception as e:
         logger.error(f"❌ Failed to analyze image: {e}")
@@ -399,60 +347,7 @@ For each chart/visual, identify:
         return None
 
 
-def add_screenshot_references(documentation: str, image_path: str) -> str:
-    """
-    Add clean screenshot reference information to documentation.
-    """
-    # For Confluence, we don't need to show file paths - images will be embedded
-    # Just return the documentation as-is since images are uploaded separately
-    return documentation
 
-
-def generate_dashboard_documentation(analysis_file: str, image_path: str) -> Optional[str]:
-    """Generate user-friendly how-to documentation from dashboard analysis."""
-    try:
-        logger.info(f"📝 Generating how-to documentation from: {analysis_file}")
-        
-        # Read the analysis file
-        with open(analysis_file, 'r', encoding='utf-8') as f:
-            analysis_content = f.read()
-        
-        # Generate documentation using unified function
-        documentation_prompt = create_unified_documentation_prompt(analysis_content, is_multi_image=False)
-        documentation_text = generate_documentation_with_ai(documentation_prompt, is_multi_image=False)
-        
-        if not documentation_text:
-            return None
-        
-        # Generate filename  
-        image_basename = os.path.splitext(os.path.basename(image_path))[0]
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Ensure outputs directory exists
-        os.makedirs("outputs", exist_ok=True)
-        doc_filename = f"outputs/dashboard_howto_{image_basename}_{timestamp}.md"
-        
-        # Enhance documentation with screenshot references
-        enhanced_documentation = add_screenshot_references(documentation_text, image_path)
-        
-        # Create clean documentation file for Confluence
-        with open(doc_filename, 'w', encoding='utf-8') as f:
-            f.write(enhanced_documentation)
-            
-            # Add minimal, professional footer
-            f.write(f"\n\n**Documentation Information**\n\n")
-            f.write(f"• **Generated:** {datetime.now().strftime('%B %d, %Y')}\n")
-            f.write(f"• **Analysis Method:** AWS Bedrock Claude 3.5 Sonnet AI\n")
-        
-        logger.info(f"✅ Documentation generated: {doc_filename}")
-        print(f"📚 How-to documentation saved: {doc_filename}")
-        
-        return doc_filename
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to generate documentation: {e}")
-        print(f"❌ Documentation generation failed: {e}")
-        return None
 
 
 def publish_to_confluence(doc_file: str, title: str = None, images: list = None) -> bool:
@@ -460,7 +355,7 @@ def publish_to_confluence(doc_file: str, title: str = None, images: list = None)
     try:
         from utils.confluence_uploader import ConfluenceUploader
         
-        print("🔗 Publishing documentation to Confluence...")
+        print("Publishing documentation to Confluence...")
         
         # Read the documentation content
         with open(doc_file, 'r', encoding='utf-8') as f:
@@ -491,7 +386,7 @@ def publish_to_confluence(doc_file: str, title: str = None, images: list = None)
         
         if page_url:
             print(f"✅ Successfully published to Confluence!")
-            print(f"🔗 Page URL: {page_url}")
+            print(f"Page URL: {page_url}")
             logger.info(f"✅ Published to Confluence: {page_url}")
             return True
         else:
@@ -508,9 +403,8 @@ def publish_to_confluence(doc_file: str, title: str = None, images: list = None)
         return False
 
 
-def find_recent_images():
-    """Find recent image files in common locations."""
-    import glob
+def find_recent_images() -> List[str]:
+    """Find recent image files in common locations, avoiding duplicates."""
     
     common_paths = [
         os.path.expanduser("~/Desktop"),
@@ -521,6 +415,7 @@ def find_recent_images():
     
     image_extensions = ['*.png', '*.jpg', '*.jpeg', '*.gif', '*.webp', '*.bmp']
     recent_images = []
+    seen_filenames = set()  # Track filenames to avoid duplicates
     
     for path in common_paths:
         if os.path.exists(path):
@@ -528,6 +423,14 @@ def find_recent_images():
                 pattern = os.path.join(path, ext)
                 files = glob.glob(pattern)
                 for file in files:
+                    filename = os.path.basename(file)
+                    
+                    # Skip if we've already seen this filename
+                    if filename in seen_filenames:
+                        continue
+                    
+                    seen_filenames.add(filename)
+                    
                     # Get file modification time
                     mtime = os.path.getmtime(file)
                     recent_images.append((file, mtime))
@@ -537,289 +440,252 @@ def find_recent_images():
     return [img[0] for img in recent_images[:10]]
 
 
-def analyze_multiple_images(image_paths: list) -> dict:
-    """Analyze multiple dashboard images and organize results."""
-    results = {}
-    
-    for i, image_path in enumerate(image_paths, 1):
-        print(f"\n📸 Analyzing image {i}/{len(image_paths)}: {os.path.basename(image_path)}")
-        
-        analysis_file = analyze_dashboard_image(image_path)
-        if analysis_file:
-            results[image_path] = analysis_file
-            print(f"✅ Analysis {i} completed")
-        else:
-            print(f"❌ Analysis {i} failed")
-    
-    return results
-
-
-def generate_multi_dashboard_documentation(analysis_results: dict) -> Optional[str]:
-    """Generate consolidated documentation from multiple screenshots of a single large dashboard."""
-    if not analysis_results:
-        return None
-    
+def generate_multi_dashboard_documentation_direct(image_paths: List[str]) -> Optional[str]:
+    """Generate consolidated documentation from multiple dashboard images."""
     try:
-        print("🤖 Generating comprehensive documentation from multiple screenshots...")
+        print(f"🤖 Generating comprehensive documentation from {len(image_paths)} dashboard images...")
         
-        # Read all analysis files
-        all_analyses = []
-        image_references = []
+        # Prepare all images for analysis
+        image_data_list = []
         
-        for image_path, analysis_file in analysis_results.items():
-            with open(analysis_file, 'r', encoding='utf-8') as f:
-                analysis_content = f.read()
-                all_analyses.append(f"**Analysis of {os.path.basename(image_path)}:**\n{analysis_content}")
-                image_references.append(f"- {os.path.basename(image_path)}: {image_path}")
+        for i, image_path in enumerate(image_paths, 1):
+            print(f"Processing image {i}/{len(image_paths)}: {os.path.basename(image_path)}")
+            
+            # Handle potential unicode issues in file paths
+            if not os.path.exists(image_path):
+                # Try to find the file with glob to handle unicode characters
+                import glob
+                dir_path = os.path.dirname(image_path) if os.path.dirname(image_path) else "."
+                basename = os.path.basename(image_path)
+                pattern = os.path.join(dir_path, "*" + basename.replace(" ", "*").replace("PM", "*PM*").replace("AM", "*AM*") + "*")
+                matches = glob.glob(pattern)
+                if matches:
+                    image_path = matches[0]
+                    print(f"Resolved path to: {image_path}")
+            
+            # Validate image file
+            is_valid, message = validate_image_file(image_path)
+            if not is_valid:
+                print(f"❌ {message}")
+                continue
+                
+            image_path_clean = image_path.strip().strip('"').strip("'")
+            
+            # Read and encode image
+            with open(image_path_clean, 'rb') as image_file:
+                image_data = image_file.read()
+                image_base64 = base64.b64encode(image_data).decode('utf-8')
+            
+            # Determine media type
+            file_ext = os.path.splitext(image_path_clean)[1].lower()
+            media_type_map = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg', 
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.webp': 'image/webp',
+                '.bmp': 'image/bmp'
+            }
+            media_type = media_type_map.get(file_ext, 'image/jpeg')
+            
+            image_data_list.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": image_base64
+                }
+            })
         
-        # Generate documentation using unified function
-        consolidated_analysis = chr(10).join(all_analyses)
-        documentation_prompt = create_unified_documentation_prompt(consolidated_analysis, is_multi_image=True)
-        documentation_text = generate_documentation_with_ai(documentation_prompt, is_multi_image=True)
-        
-        if not documentation_text:
+        if not image_data_list:
+            print("❌ No valid images to process")
             return None
+            
+        print(f"✅ Successfully processed {len(image_data_list)} images for analysis")
+        # Use unified prompt for multi-image documentation
+        unified_prompt = create_unified_prompt(is_multi_image=True)
+        
+        # Initialize Bedrock client
+        print("Connecting to AWS Bedrock AI...")
+        bedrock = get_bedrock_client()
+        
+        # Prepare messages with all images
+        content_list = image_data_list + [{
+            "type": "text",
+            "text": unified_prompt
+        }]
+        
+        print(f"Sending {len(image_data_list)} images to Bedrock...")
+        
+        messages = [{
+            "role": "user",
+            "content": content_list
+        }]
+        
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 6000,
+            "messages": messages,
+            "temperature": 0.1
+        }
+        
+        # Calculate approximate payload size
+        body_str = json.dumps(body)
+        payload_size_mb = len(body_str.encode('utf-8')) / (1024 * 1024)
+        print(f"Payload size: {payload_size_mb:.2f} MB")
+        
+        if payload_size_mb > 20:
+            print("⚠️ Payload might be too large for Bedrock")
+        
+        print("Calling Bedrock API...")
+        # Call Bedrock with vision model
+        response = bedrock.invoke_model(
+            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
+            body=json.dumps(body),
+            contentType='application/json'
+        )
+        
+        # Parse response  
+        response_body = json.loads(response['body'].read())
+        documentation_text = response_body['content'][0]['text']
+        
+        # Remove extra spacing after header tags
+        documentation_text = documentation_text.replace('<h2>Objective</h2>\n\n', '<h2>Objective</h2>\n')
+        documentation_text = documentation_text.replace('<h2>Objective</h2>\n ', '<h2>Objective</h2>\n')
+        documentation_text = documentation_text.replace('<h3>', '\n<h3>')  # Ensure h3 tags have proper spacing
         
         # Generate filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         doc_filename = f"outputs/multi_dashboard_howto_{timestamp}.md"
         
-        # Ensure outputs directory exists
+        # Ensure outputs and images directories exist
         os.makedirs("outputs", exist_ok=True)
+        os.makedirs("outputs/images", exist_ok=True)
         
-        # Create clean documentation file for Confluence
-        with open(doc_filename, 'w', encoding='utf-8') as f:
-            # Write only the clean documentation content
-            f.write(documentation_text)
+        # Copy source images to outputs/images for embedding
+        import shutil
+        for image_path in image_paths:
+            image_name = os.path.basename(image_path)
+            dest_path = f"outputs/images/{image_name}"
+            try:
+                shutil.copy2(image_path, dest_path)
+                print(f"Copied image: {image_name}")
+            except Exception as e:
+                print(f"⚠️ Could not copy {image_name}: {e}")
+        
+        # Create Markdown documentation with center alignment for Confluence
+        markdown_filename = doc_filename  # Keep .md extension
+        with open(markdown_filename, 'w', encoding='utf-8') as f:
+            # Write centered title without metadata table
+            f.write('<div style="text-align: center; max-width: 800px; margin: 0 auto;">\n\n')
+            f.write("<h1>Dashboard User Guide</h1>\n")
             
-            # Add minimal, professional footer
-            f.write(f"\n\n**Documentation Information**\n\n")
-            f.write(f"• **Generated:** {datetime.now().strftime('%B %d, %Y')}\n")
-            f.write(f"• **Coverage:** {len(analysis_results)} screenshots of single dashboard analyzed\n")
-            f.write(f"• **Analysis Method:** AWS Bedrock Claude 3.5 Sonnet AI\n")
+            # Main documentation content
+            f.write(documentation_text)
+            f.write("\n\n")
+            
+            # Add screenshots section at the end
+            f.write("<h2>Dashboard Screenshots</h2>\n\n")
+            f.write(f"**Screenshot Analysis Date:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
+            f.write(f"**Screenshots Analyzed:** {len(image_paths)} images\n\n")
+            f.write(f"*Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis*\n\n")
+            
+            # Clean footer
+            f.write("---\n\n")
+            f.write("*This documentation was automatically generated using AI analysis.*\n")
+            f.write("*For questions or updates, please contact the BI team.*\n\n")
+            f.write("</div>")
         
-        logger.info(f"✅ Multi-dashboard documentation generated: {doc_filename}")
-        print(f"📚 Comprehensive single-dashboard documentation saved: {doc_filename}")
+        logger.info(f"✅ Multi-dashboard documentation generated: {markdown_filename}")
+        print(f"Markdown documentation saved: {markdown_filename}")
+        print(f"Ready for Confluence import!")
         
-        return doc_filename
+        return markdown_filename
         
     except Exception as e:
         logger.error(f"❌ Failed to generate multi-dashboard documentation: {e}")
-        print(f"❌ Multi-dashboard documentation generation failed: {e}")
+        print(f"❌ Multi-dashboard documentation generation failed")
+        print(f"💡 Error details: {str(e)}")
+        print(f"💡 Error type: {type(e).__name__}")
+        if "ExpiredToken" in str(e):
+            print("💡 Your AWS credentials have expired. Please refresh them in Okta.")
+        elif "ValidationException" in str(e) or "PayloadTooLargeException" in str(e):
+            print("💡 Multiple images may be too large. Try with fewer images or smaller files.")
+        elif "Credentials" in str(e) or "Token" in str(e):
+            print("💡 Credential issue detected. Please refresh your AWS credentials.")
         return None
 
 
+
+
+
 def upload_dashboard_image():
-    """Interactive dashboard image upload and analysis."""
-    print("🖼️ QuickSight Dashboard Image Analyzer")
+    """Unified interactive image upload and analysis (single or multiple images)."""
+    print("QuickSight Dashboard Image Analyzer")
     print("=" * 50)
-    print("📋 Upload QuickSight dashboard screenshots for AI analysis")
+    print("Select one or multiple QuickSight dashboard screenshots for AI analysis")
     print()
     print("✅ Supported formats: PNG, JPG, JPEG, GIF, WebP, BMP")
     print("✅ Maximum file size: 10MB per image")
     print("✅ AI-powered business insights and recommendations")
     print("✅ Detailed visualization breakdown and technical assessment")
     print()
-    
-    # Show analysis options
-    print("📊 Analysis Options:")
-    print("1. 📸 Single Dashboard Analysis")
-    print("2. 📷 Multi-Screenshot Analysis (Large Dashboard)")
-    print("3. ❌ Exit")
-    print()
-    
-    analysis_choice = input("Choose analysis type (1-3): ").strip()
-    
-    if analysis_choice == '3':
-        print("👋 Goodbye!")
-        return
-    elif analysis_choice == '2':
-        upload_multiple_images()
-        return
-    elif analysis_choice != '1':
-        print("❌ Invalid choice. Defaulting to single image analysis.")
-    
-    # Single image analysis (existing functionality)
-    print("\n🖼️ Single Dashboard Analysis")
-    print("=" * 40)
-    
-    # Show helpful tips
     print("💡 Tips for best results:")
-    print("   • Capture the full dashboard view")
-    print("   • Include chart titles and legends")
-    print("   • Ensure text is readable")
-    print("   • Use PNG format for best quality")
+    print("   - Capture the full dashboard view")
+    print("   - Include chart titles and legends")
+    print("   - Ensure text is readable")
+    print("   - Use PNG format for best quality")
     print()
     
-    # Show recent images
     recent_images = find_recent_images()
-    if recent_images:
-        print("📷 Recent image files found:")
-        for i, img_path in enumerate(recent_images[:5], 1):
-            filename = os.path.basename(img_path)
-            print(f"   {i}. {filename}")
-        print(f"   0. Browse for different file")
-        print()
-    
-    # Show common file locations
-    print("📁 Common file locations:")
-    print("   • ~/Desktop/")
-    print("   • ~/Downloads/")
-    print("   • ~/Pictures/")
-    print("   • Drag & drop file path from Finder")
-    print()
-    
-    # Single image upload loop
-    while True:
-        if recent_images:
-            print("📎 Choose an option:")
-            print("   • Enter number (1-5) to select recent image")
-            print("   • Enter file path directly")
-            print("   • Type 'quit' to exit")
-            choice = input("Choice: ").strip()
-        else:
-            print("📎 Enter image file path (or type 'quit' to exit):")
-            choice = input("Path: ").strip()
-        
-        if choice.lower() in ['quit', 'q', 'exit']:
-            print("👋 Goodbye!")
-            return
-        
-        if not choice:
-            print("❌ Please provide a choice or file path")
-            continue
-        
-        # Handle numbered choice for recent images
-        image_path = None
-        if choice.isdigit() and recent_images:
-            choice_num = int(choice)
-            if 1 <= choice_num <= min(5, len(recent_images)):
-                image_path = recent_images[choice_num - 1]
-                print(f"✅ Selected: {os.path.basename(image_path)}")
-            elif choice_num == 0:
-                image_path = input("📁 Enter file path: ").strip()
-            else:
-                print(f"❌ Invalid choice. Please enter 1-{min(5, len(recent_images))} or 0")
-                continue
-        else:
-            image_path = choice
-        
-        if not image_path:
-            print("❌ Please provide an image file path")
-            continue
-        
-        # Clean and validate the image path
-        image_path = image_path.strip().strip('"').strip("'")
-        
-        # Analyze the image
-        result = analyze_dashboard_image(image_path)
-        
-        if result:
-            print(f"\n🎉 Analysis Complete!")
-            print(f"📄 Full report saved to: {result}")
-            print()
-            
-            # Ask about documentation generation
-            print("📚 Additional Options:")
-            print("1. 📝 Generate how-to documentation")
-            print("2. 🔗 Generate how-to + publish to Confluence") 
-            print("3. ⏭️  Skip to next image")
-            
-            doc_choice = input("Choose option (1-3): ").strip()
-            
-            if doc_choice == '1':
-                # Generate documentation only
-                doc_file = generate_dashboard_documentation(result, image_path)
-                if doc_file:
-                    print(f"✅ How-to documentation created: {doc_file}")
-                    
-            elif doc_choice == '2':
-                # Generate documentation and publish to Confluence
-                doc_file = generate_dashboard_documentation(result, image_path)
-                if doc_file:
-                    print(f"✅ How-to documentation created: {doc_file}")
-                    print()
-                    
-                    # Ask for custom title
-                    custom_title = input("📝 Enter custom title (or press Enter for auto-generated): ").strip()
-                    title = custom_title if custom_title else None
-                    
-                    # Publish to Confluence with dashboard image
-                    success = publish_to_confluence(doc_file, title, [image_path])
-                    if success:
-                        print("🚀 Complete workflow finished successfully!")
-                    else:
-                        print("⚠️ Documentation created but Confluence publishing failed")
-                        
-            elif doc_choice == '3':
-                print("⏭️ Skipping additional options")
-            else:
-                print("❌ Invalid choice, skipping additional options")
-            
-            print()
-            
-            # Ask if user wants to analyze another image
-            another = input("📊 Analyze another dashboard image? (y/n): ").strip().lower()
-            if another not in ['y', 'yes']:
-                print("👋 Thank you for using QuickSight Dashboard Image Analyzer!")
-                break
-        else:
-            print("\n💡 Please try again with a valid image file")
-            
-        print()  # Add spacing
-
-
-def upload_multiple_images():
-    """Interactive multiple dashboard image upload and analysis."""
-    print("\n📷 Multi-Screenshot Analysis for Large Dashboard")
-    print("=" * 40)
-    print("📋 Upload multiple screenshots of a single large dashboard")
-    print()
-    print("💡 This is perfect for:")
-    print("   • Large dashboards with multiple tabs/sections")
-    print("   • Dashboards requiring several screenshots to capture all content")
-    print("   • Complex single dashboards with many visualizations")
-    print("   • Dashboards with expandable sections or drill-down views")
-    print()
-    
-    # Show recent images for selection
-    recent_images = find_recent_images()
-    selected_images = []
+    selected_images: list[str] = []
     
     if recent_images:
-        print("📷 Recent image files found:")
+        print("Recent image files found:")
         for i, img_path in enumerate(recent_images, 1):
             filename = os.path.basename(img_path)
             print(f"   {i:2d}. {filename}")
         print("    0. Add custom file path")
-        print("   99. Done selecting images")
+        print("   ff. Done selecting images")
+        print("   qq. Quit")
         print()
         
         while True:
-            print(f"📸 Currently selected: {len(selected_images)} images")
+            print(f"Currently selected: {len(selected_images)} image(s)")
             if selected_images:
                 for img in selected_images:
                     print(f"   ✅ {os.path.basename(img)}")
                 print()
             
-            choice = input("Choose image number (or 99 when done): ").strip()
+            choice = input("Choose image number, enter a file path, ff to finish, or qq to quit: ").strip()
+
+            if choice.lower() in ['qq', 'q', 'exit']:
+                print("Goodbye!")
+                return
+
+            if not choice:
+                print("❌ Please provide a selection")
+                continue
             
-            if choice == '99':
-                if len(selected_images) >= 2:
+            if choice.lower() == 'ff':
+                if len(selected_images) >= 1:
                     break
                 else:
-                    print("❌ Please select at least 2 images for multi-dashboard analysis")
+                    print("❌ Please select at least 1 image")
                     continue
-            elif choice == '0':
+
+            if choice == '0':
                 custom_path = input("📁 Enter file path: ").strip()
-                # Clean the path
                 custom_path = custom_path.strip().strip('"').strip("'")
                 if custom_path and os.path.exists(custom_path):
                     selected_images.append(custom_path)
                     print(f"✅ Added: {os.path.basename(custom_path)}")
                 else:
                     print(f"❌ File not found: {custom_path}")
-            elif choice.isdigit():
+                continue
+
+            # Handle numeric choice from recent list
+            if choice.isdigit():
                 choice_num = int(choice)
                 if 1 <= choice_num <= len(recent_images):
                     img_path = recent_images[choice_num - 1]
@@ -829,70 +695,125 @@ def upload_multiple_images():
                     else:
                         print("⚠️ Image already selected")
                 else:
-                    print(f"❌ Invalid choice. Enter 1-{len(recent_images)}, 0, or 99")
+                    print(f"❌ Invalid choice. Enter 1-{len(recent_images)}, 0, ff, or a file path")
             else:
-                print("❌ Please enter a number")
+                # Try as direct file path
+                path_candidate = choice.strip().strip('"').strip("'")
+                if os.path.exists(path_candidate):
+                    selected_images.append(path_candidate)
+                    print(f"✅ Added: {os.path.basename(path_candidate)}")
     else:
-        print("📁 No recent images found. Please enter file paths manually.")
+                    print(f"❌ File not found: {path_candidate}")
+    
+    if not recent_images:
+        print("📁 No recent images found. Please enter file paths.")
         while True:
-            if len(selected_images) >= 2:
-                done = input(f"📸 Currently selected: {len(selected_images)} images. Add more? (y/n): ").strip().lower()
+            if len(selected_images) >= 1:
+                done = input(f"Currently selected: {len(selected_images)} image(s). Add more? (y/n): ").strip().lower()
                 if done == 'n':
                     break
             
-            img_path = input("📁 Enter image file path (or 'done' to finish): ").strip()
+            img_path = input("📁 Enter image file path (or 'done' to finish, 'qq' to quit): ").strip()
+            if img_path.lower() in ['qq', 'q', 'exit']:
+                print("Goodbye!")
+                return
             if img_path.lower() == 'done':
-                if len(selected_images) >= 2:
+                if len(selected_images) >= 1:
                     break
                 else:
-                    print("❌ Please select at least 2 images")
+                    print("❌ Please select at least 1 image")
                     continue
             
-            # Clean the path
             img_path = img_path.strip().strip('"').strip("'")
-            
             if os.path.exists(img_path):
                 selected_images.append(img_path)
                 print(f"✅ Added: {os.path.basename(img_path)}")
             else:
                 print(f"❌ File not found: {img_path}")
     
-    if len(selected_images) < 2:
-        print("❌ Need at least 2 images for multi-dashboard analysis")
+    if len(selected_images) == 0:
+        print("❌ No images selected")
         return
     
-    # Analyze multiple images
-    print(f"\n🚀 Starting analysis of {len(selected_images)} dashboard images...")
-    analysis_results = analyze_multiple_images(selected_images)
-    
-    if analysis_results:
-        print(f"\n🎉 Multi-Screenshot Analysis Complete!")
-        print(f"📊 Successfully analyzed {len(analysis_results)} screenshots of the dashboard")
+    if len(selected_images) == 1:
+        # Single image flow
+        image_path = selected_images[0]
+        result = analyze_dashboard_image(image_path)
+
+        if result:
+            print(f"\nAnalysis Complete!")
+            print(f"Full report saved to: {result}")
         print()
         
-        # Ask about documentation generation
-        print("📚 Documentation Options:")
-        print("1. 📝 Generate comprehensive single-dashboard documentation")
-        print("2. 🔗 Generate documentation + publish to Confluence")
-        print("3. ⏭️  Skip documentation")
+        print("Additional Options:")
+        print("1. Generate how-to documentation")
+        print("2. Generate how-to + publish to Confluence")
+        print("3. Finish")
+
+        doc_choice = input("Choose option (1-3): ").strip()
+
+        if doc_choice == '2':
+            custom_title = input("Enter custom title (or press Enter for auto-generated): ").strip()
+            title = custom_title if custom_title else None
+            success = publish_to_confluence(result, title, [image_path])
+            if success:
+                print("🚀 Complete workflow finished successfully!")
+            else:
+                print("⚠️ Documentation created but Confluence publishing failed")
+        elif doc_choice == '1':
+            print("✅ Documentation saved locally")
+        else:
+            print("Skipping documentation")
+
+        another = input("Analyze more images? (y/n): ").strip().lower()
+        if another in ['y', 'yes']:
+            print()
+            upload_dashboard_image()
+        else:
+            print("Thank you for using QuickSight Dashboard Image Analyzer!")
+        
+        if not result:
+            print("❌ Analysis failed for the selected image")
+        return
+
+    # Multi-image flow - generate consolidated documentation
+    doc_file = generate_multi_dashboard_documentation_direct(selected_images)
+
+    if doc_file:
+        print(f"\nMulti-image Analysis Complete!")
+        print(f"Successfully analyzed {len(selected_images)} screenshots of the dashboard")
+        print()
+
+        print("Documentation Options:")
+        print("1. Keep documentation local")
+        print("2. Publish to Confluence")
+        print("3. Finish")
         
         doc_choice = input("Choose option (1-3): ").strip()
         
-        if doc_choice in ['1', '2']:
-            doc_file = generate_multi_dashboard_documentation(analysis_results)
-            if doc_file and doc_choice == '2':
-                print("\n🔗 Publishing to Confluence...")
-                custom_title = input("📝 Enter custom title (or press Enter for auto-generated): ").strip()
+        if doc_choice == '2':
+                print("\nPublishing to Confluence...")
+                custom_title = input("Enter custom title (or press Enter for auto-generated): ").strip()
                 title = custom_title if custom_title else None
                 success = publish_to_confluence(doc_file, title, selected_images)
                 if success:
                     print("✅ Successfully published to Confluence!")
                 else:
                     print("❌ Failed to publish to Confluence")
-        
-        print(f"\n🚀 Multi-screenshot analysis workflow complete!")
+        elif doc_choice == '1':
+            print("✅ Documentation saved locally")
+
+        print(f"\n🚀 Multi-image analysis workflow complete!")
+        another = input("Analyze more images? (y/n): ").strip().lower()
+        if another in ['y', 'yes']:
+            print()
+            upload_dashboard_image()
+        else:
+            print("Thank you for using QuickSight Dashboard Image Analyzer!")
     else:
-        print("❌ No images were successfully analyzed")
+        print("❌ Multi-image documentation generation failed")
+
+
 
 
 def main():
@@ -900,22 +821,22 @@ def main():
     logger.info("Starting QuickSight Dashboard Image Analyzer")
     
     print("\n" + "="*65)
-    print("🚀 QuickSight Dashboard Image Analyzer")
+    print("QuickSight Dashboard Image Analyzer")
     print("="*65)
     print("Upload and analyze QuickSight dashboard screenshots with AI")
     print()
-    print("🎯 Features:")
-    print("   • 🧠 AI-powered dashboard analysis")
-    print("   • 📊 Business insights and recommendations") 
-    print("   • 📈 Visualization breakdown and assessment")
-    print("   • ⚡ Technical evaluation and improvement suggestions")
-    print("   • 📝 Detailed markdown reports")
+    print("Features:")
+    print("   - AI-powered dashboard analysis")
+    print("   - Business insights and recommendations") 
+    print("   - Visualization breakdown and assessment")
+    print("   - Technical evaluation and improvement suggestions")
+    print("   - Detailed markdown reports")
     print()
     
     try:
         upload_dashboard_image()
     except KeyboardInterrupt:
-        print("\n\n👋 Goodbye!")
+        print("\n\nGoodbye!")
     except Exception as e:
         logger.error(f"Application error: {e}")
         print(f"\n❌ Application error: {e}")
