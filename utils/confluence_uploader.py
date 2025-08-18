@@ -14,6 +14,7 @@ from typing import Optional, Dict, Any
 from urllib.parse import urljoin
 
 from . import config
+from .image_utils import ImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -109,10 +110,46 @@ class ConfluenceUploader:
             return None
     
     def convert_markdown_to_confluence(self, markdown_content: str) -> str:
-        """Convert markdown to Confluence storage format."""
-        # Basic markdown to Confluence conversion
-        # You might want to use a proper markdown->confluence converter library
+        """Convert markdown to Confluence storage format using proper markdown library."""
+        try:
+            import markdown
+            from markdown.extensions import codehilite, tables, fenced_code
+            
+            # Configure markdown extensions for better conversion
+            extensions = [
+                'markdown.extensions.tables',
+                'markdown.extensions.fenced_code',
+                'markdown.extensions.codehilite',
+                'markdown.extensions.nl2br',
+                'markdown.extensions.sane_lists'
+            ]
+            
+            # Convert markdown to HTML
+            html_content = markdown.markdown(markdown_content, extensions=extensions)
+            
+            # Post-process HTML for Confluence compatibility
+            confluence_content = self._post_process_html_for_confluence(html_content)
+            
+            return confluence_content
+            
+        except ImportError:
+            # Fallback to basic conversion if markdown library not available
+            return self._basic_markdown_conversion(markdown_content)
+    
+    def _post_process_html_for_confluence(self, html_content: str) -> str:
+        """Post-process HTML to ensure Confluence compatibility."""
+        # Ensure proper paragraph structure
+        if not html_content.startswith('<'):
+            html_content = f'<p>{html_content}</p>'
         
+        # Fix common HTML issues for Confluence
+        html_content = html_content.replace('<p></p>', '')  # Remove empty paragraphs
+        html_content = html_content.replace('\n\n', '</p><p>')  # Proper paragraph breaks
+        
+        return html_content
+    
+    def _basic_markdown_conversion(self, markdown_content: str) -> str:
+        """Basic markdown conversion as fallback (original implementation)."""
         confluence_content = markdown_content
         
         # Convert headers
@@ -158,106 +195,81 @@ class ConfluenceUploader:
         
         return confluence_content
     
-    def create_page(self, title: str, content: str) -> Optional[str]:
-        """Create a new Confluence page."""
-        try:
-            # Convert markdown to Confluence storage format
-            if content.startswith('#') or '##' in content:
-                storage_content = self.convert_markdown_to_confluence(content)
-            else:
-                # Assume it's already in storage format
-                storage_content = content
-            
-            page_data = {
-                'type': 'page',
-                'title': title,
-                'space': {
-                    'key': self.space_key
-                },
-                'body': {
-                    'storage': {
-                        'value': storage_content,
-                        'representation': 'storage'
-                    }
+    def _prepare_page_data(self, title: str, content: str, page_id: str = None, version: int = None) -> dict:
+        """Prepare page data for Confluence API requests."""
+        # Convert markdown to Confluence storage format
+        if content.startswith('#') or '##' in content:
+            storage_content = self.convert_markdown_to_confluence(content)
+        else:
+            # Assume it's already in storage format
+            storage_content = content
+        
+        page_data = {
+            'type': 'page',
+            'title': title,
+            'space': {
+                'key': self.space_key
+            },
+            'body': {
+                'storage': {
+                    'value': storage_content,
+                    'representation': 'storage'
                 }
             }
-            
-            response = requests.post(
-                urljoin(self.api_base, 'content'),
-                headers=self.headers,
-                data=json.dumps(page_data),
-                timeout=30
-            )
+        }
+        
+        # Add ID and version for updates
+        if page_id:
+            page_data['id'] = page_id
+        if version is not None:
+            page_data['version'] = {'number': version + 1}
+        
+        return page_data
+    
+    def _make_page_request(self, method: str, url: str, page_data: dict, title: str) -> Optional[str]:
+        """Make HTTP request to Confluence API for page operations."""
+        try:
+            if method.upper() == 'POST':
+                response = requests.post(url, headers=self.headers, data=json.dumps(page_data), timeout=30)
+            elif method.upper() == 'PUT':
+                response = requests.put(url, headers=self.headers, data=json.dumps(page_data), timeout=30)
+            else:
+                raise ValueError(f"Unsupported HTTP method: {method}")
             
             if response.status_code == 200:
                 result = response.json()
                 page_url = urljoin(self.confluence_url, result['_links']['webui'])
-                logger.info(f"✅ Page created successfully: {title}")
+                logger.info(f"✅ Page {method.lower()}ed successfully: {title}")
                 return page_url
             else:
-                logger.error(f"❌ Failed to create page: {response.status_code} - {response.text}")
+                logger.error(f"❌ Failed to {method.lower()} page: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ Error creating page: {e}")
+            logger.error(f"❌ Error {method.lower()}ing page: {e}")
             return None
+
+    def create_page(self, title: str, content: str) -> Optional[str]:
+        """Create a new Confluence page."""
+        page_data = self._prepare_page_data(title, content)
+        return self._make_page_request('POST', urljoin(self.api_base, 'content'), page_data, title)
     
     def update_page(self, page_id: str, title: str, content: str, version: int) -> Optional[str]:
         """Update an existing Confluence page."""
-        try:
-            # Convert markdown to Confluence storage format
-            if content.startswith('#') or '##' in content:
-                storage_content = self.convert_markdown_to_confluence(content)
-            else:
-                storage_content = content
-            
-            page_data = {
-                'id': page_id,
-                'type': 'page',
-                'title': title,
-                'space': {
-                    'key': self.space_key
-                },
-                'body': {
-                    'storage': {
-                        'value': storage_content,
-                        'representation': 'storage'
-                    }
-                },
-                'version': {
-                    'number': version + 1
-                }
-            }
-            
-            response = requests.put(
-                urljoin(self.api_base, f'content/{page_id}'),
-                headers=self.headers,
-                data=json.dumps(page_data),
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                page_url = urljoin(self.confluence_url, result['_links']['webui'])
-                logger.info(f"✅ Page updated successfully: {title}")
-                return page_url
-            else:
-                logger.error(f"❌ Failed to update page: {response.status_code} - {response.text}")
-                return None
-                
-        except Exception as e:
-            logger.error(f"❌ Error updating page: {e}")
-            return None
+        page_data = self._prepare_page_data(title, content, page_id, version)
+        return self._make_page_request('PUT', urljoin(self.api_base, f'content/{page_id}'), page_data, title)
     
     def upload_image(self, image_path: str, page_id: str) -> Optional[str]:
         """Upload an image as an attachment to a Confluence page."""
         try:
-            import mimetypes
+            # Validate image using centralized utilities
+            is_valid, message = ImageProcessor.validate_image_file(image_path)
+            if not is_valid:
+                logger.warning(f"Skipping invalid image: {message}")
+                return None
             
-            # Determine content type
-            content_type, _ = mimetypes.guess_type(image_path)
-            if not content_type:
-                content_type = 'application/octet-stream'
+            # Get content type using centralized utilities
+            content_type = ImageProcessor.get_media_type(image_path)
             
             # Prepare file for upload
             filename = os.path.basename(image_path)

@@ -16,7 +16,7 @@ from typing import Dict, List, Optional
 import boto3
 from dotenv import load_dotenv
 
-from utils import config
+from utils import config, ImageProcessor
 
 # Load environment variables
 load_dotenv()
@@ -27,14 +27,29 @@ logger = logging.getLogger(__name__)
 
 
 def get_bedrock_client():
-    """Get a configured Bedrock client."""
-    return boto3.client(
-        'bedrock-runtime',
-        region_name=config.aws_region,
-        aws_access_key_id=config.aws_access_key_id,
-        aws_secret_access_key=config.aws_secret_access_key,
-        aws_session_token=getattr(config, 'aws_session_token', None)
-    )
+    """Get a configured Bedrock client using AWS credential chain."""
+    # Use AWS credential chain for authentication
+    # This supports: IAM roles, AWS SSO, CLI profiles, instance profiles, env vars
+    client_kwargs = {
+        'service_name': 'bedrock-runtime',
+        'region_name': config.aws_region
+    }
+    
+    # Only add explicit credentials if they're provided (for backward compatibility)
+    if config.aws_access_key_id and config.aws_secret_access_key:
+        client_kwargs.update({
+            'aws_access_key_id': config.aws_access_key_id,
+            'aws_secret_access_key': config.aws_secret_access_key,
+            'aws_session_token': getattr(config, 'aws_session_token', None)
+        })
+    
+    # If AWS profile is specified, use it
+    if hasattr(config, 'aws_profile') and config.aws_profile:
+        # Use session with profile
+        session = boto3.Session(profile_name=config.aws_profile)
+        return session.client('bedrock-runtime', region_name=config.aws_region)
+    
+    return boto3.client(**client_kwargs)
 
 
 
@@ -148,99 +163,74 @@ Unlike the previous version, the new enhanced version of [Dashboard Name] in Qui
 
 
 def validate_image_file(image_path: str) -> tuple[bool, str]:
-    """Validate the uploaded image file."""
-    if not image_path or not image_path.strip():
-        return False, "❌ No image path provided"
-    
-    # Clean path: remove quotes but preserve original Unicode characters for file access
-    original_path = image_path.strip().strip('"').strip("'")
-    
-    if not os.path.exists(original_path):
-        return False, f"❌ Image file not found: {original_path}"
-    
-    # Check file size (max 10MB for reasonable processing)
-    file_size = os.path.getsize(original_path)
-    if file_size > 10 * 1024 * 1024:  # 10MB
-        return False, f"❌ Image file too large: {file_size / (1024*1024):.1f}MB (max 10MB)"
-    
-    # Check file extension
-    valid_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'}
-    file_ext = os.path.splitext(original_path)[1].lower()
-    if file_ext not in valid_extensions:
-        return False, f"❌ Unsupported format: {file_ext}. Supported: {', '.join(valid_extensions)}"
-    
-    return True, "✅ Valid image file"
+    """Validate the uploaded image file using centralized utilities."""
+    return ImageProcessor.validate_image_file(image_path)
 
 
 def analyze_dashboard_image(image_path: str) -> Optional[str]:
-    """Generate dashboard documentation directly from image analysis."""
+    """Convenience function for single image analysis."""
+    return analyze_dashboard_images([image_path])
+
+
+def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
+    """Generate dashboard documentation from one or more image analysis.
+    
+    This function consolidates the previous separate single and multi-image handlers
+    into a unified approach that efficiently handles both cases.
+    """
     try:
-        logger.info(f"Starting dashboard image analysis: {image_path}")
+        is_multi_image = len(image_paths) > 1
+        print(f"🤖 Generating {'comprehensive' if is_multi_image else ''} documentation from {len(image_paths)} dashboard image{'s' if is_multi_image else ''}...")
         
-        # Validate image file
-        is_valid, message = validate_image_file(image_path)
-        if not is_valid:
-            print(message)
+        # Prepare all images for analysis using centralized utilities
+        image_data_list, valid_image_paths = ImageProcessor.prepare_multiple_images_for_bedrock(image_paths)
+        
+        if not image_data_list:
+            print("❌ No valid images to process")
             return None
+            
+        print(f"✅ Successfully processed {len(image_data_list)} images for analysis")
         
-        image_path = image_path.strip().strip('"').strip("'")  # Clean path
-        print(f"✅ {message}")
-        print("Reading and processing image...")
-        
-        # Read and encode image
-        with open(image_path, 'rb') as image_file:
-            image_data = image_file.read()
-            image_base64 = base64.b64encode(image_data).decode('utf-8')
-        
-        # Determine media type
-        file_ext = os.path.splitext(image_path)[1].lower()
-        media_type_map = {
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg', 
-            '.jpeg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.webp': 'image/webp',
-            '.bmp': 'image/bmp'
-        }
-        media_type = media_type_map.get(file_ext, 'image/jpeg')
-        
-        # Use unified prompt for direct documentation generation
-        unified_prompt = create_unified_prompt(is_multi_image=False)
+        # Use unified prompt for documentation generation
+        unified_prompt = create_unified_prompt(is_multi_image=is_multi_image)
         
         # Initialize Bedrock client
         print("Connecting to AWS Bedrock AI...")
         bedrock = get_bedrock_client()
         
-        # Prepare Bedrock request with image
-        print("🧠 Analyzing dashboard with AI vision...")
+        # Prepare messages with all images
+        content_list = image_data_list + [{
+            "type": "text",
+            "text": unified_prompt
+        }]
         
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": media_type,
-                            "data": image_base64
-                        }
-                    },
-                    {
-                        "type": "text",
-                        "text": unified_prompt
-                    }
-                ]
-            }
-        ]
+        print(f"Sending {len(image_data_list)} image{'s' if is_multi_image else ''} to Bedrock...")
+        
+        messages = [{
+            "role": "user",
+            "content": content_list
+        }]
+        
+        # Adjust max_tokens based on number of images
+        max_tokens = 6000 if is_multi_image else 4000
         
         body = {
             "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 4000,
+            "max_tokens": max_tokens,
             "messages": messages,
             "temperature": 0.1
         }
         
+        # Calculate approximate payload size for multi-image
+        if is_multi_image:
+            body_str = json.dumps(body)
+            payload_size_mb = len(body_str.encode('utf-8')) / (1024 * 1024)
+            print(f"Payload size: {payload_size_mb:.2f} MB")
+            
+            if payload_size_mb > 20:
+                print("⚠️ Payload might be too large for Bedrock")
+        
+        print("Calling Bedrock API...")
         # Call Bedrock with vision model
         response = bedrock.invoke_model(
             modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
@@ -248,49 +238,48 @@ def analyze_dashboard_image(image_path: str) -> Optional[str]:
             contentType='application/json'
         )
         
-        # Parse response
+        # Parse response  
         response_body = json.loads(response['body'].read())
-        analysis_text = response_body['content'][0]['text']
+        documentation_text = response_body['content'][0]['text']
         
         # Remove extra spacing after header tags
-        analysis_text = analysis_text.replace('<h2>Objective</h2>\n\n', '<h2>Objective</h2>\n')
-        analysis_text = analysis_text.replace('<h2>Objective</h2>\n ', '<h2>Objective</h2>\n')
-        analysis_text = analysis_text.replace('<h3>', '\n<h3>')  # Ensure h3 tags have proper spacing
+        documentation_text = documentation_text.replace('<h2>Objective</h2>\n\n', '<h2>Objective</h2>\n')
+        documentation_text = documentation_text.replace('<h2>Objective</h2>\n ', '<h2>Objective</h2>\n')
+        documentation_text = documentation_text.replace('<h3>', '\n<h3>')  # Ensure h3 tags have proper spacing
         
-        # Generate filename based on image name and timestamp
-        image_basename = os.path.splitext(os.path.basename(image_path))[0]
+        # Generate filename based on image count
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        if is_multi_image:
+            doc_filename = f"outputs/multi_dashboard_howto_{timestamp}.md"
+        else:
+            image_basename = os.path.splitext(os.path.basename(valid_image_paths[0]))[0]
+            doc_filename = f"outputs/dashboard_howto_{image_basename}_{timestamp}.md"
         
         # Ensure outputs and images directories exist
         os.makedirs("outputs", exist_ok=True)
         os.makedirs("outputs/images", exist_ok=True)
-        output_filename = f"outputs/dashboard_howto_{image_basename}_{timestamp}.md"
         
-        # Copy source image to outputs/images for embedding
-        import shutil
-        image_name = os.path.basename(image_path)
-        dest_path = f"outputs/images/{image_name}"
-        try:
-            shutil.copy2(image_path, dest_path)
-            print(f"Copied image: {image_name}")
-        except Exception as e:
-            print(f"⚠️ Could not copy {image_name}: {e}")
+        # Copy source images to outputs/images for embedding using centralized utilities
+        copied_files = ImageProcessor.copy_images_to_outputs(valid_image_paths)
+        for dest_path in copied_files:
+            print(f"✅ Copied image: {os.path.basename(dest_path)}")
         
         # Create Markdown documentation with center alignment for Confluence
-        markdown_filename = output_filename  # Keep .md extension
+        markdown_filename = doc_filename  # Keep .md extension
         with open(markdown_filename, 'w', encoding='utf-8') as f:
             # Write centered title without metadata table
             f.write('<div style="text-align: center; max-width: 800px; margin: 0 auto;">\n\n')
             f.write("<h1>Dashboard User Guide</h1>\n")
             
             # Main documentation content
-            f.write(analysis_text)
+            f.write(documentation_text)
             f.write("\n\n")
             
             # Add screenshots section at the end
             f.write("<h2>Dashboard Screenshots</h2>\n\n")
-            image_name = os.path.basename(image_path)
             f.write(f"**Screenshot Analysis Date:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
+            if is_multi_image:
+                f.write(f"**Screenshots Analyzed:** {len(valid_image_paths)} images\n\n")
             f.write(f"*Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis*\n\n")
             
             # Clean footer
@@ -299,39 +288,40 @@ def analyze_dashboard_image(image_path: str) -> Optional[str]:
             f.write("*For questions or updates, please contact the BI team.*\n\n")
             f.write("</div>")
         
-        logger.info(f"✅ Analysis completed and saved to: {markdown_filename}")
+        logger.info(f"✅ {'Multi-' if is_multi_image else ''}Dashboard documentation generated: {markdown_filename}")
         print(f"💾 Markdown documentation saved to: {markdown_filename}")
         print(f"Ready for Confluence import!")
         
-        # Show a preview of key insights
-        print("\n🔍 Quick Preview:")
-        print("="*50)
-        lines = analysis_text.split('\n')
-        preview_lines = []
-        section_count = 0
-        
-        for line in lines:
-            if line.strip().startswith('##') and section_count < 3:  # Show first 3 sections
-                section_count += 1
-                preview_lines.append(f"  {line.strip()}")
-            elif line.strip() and section_count <= 3 and len(preview_lines) < 15:
-                if line.strip().startswith('**') or line.strip().startswith('1.') or line.strip().startswith('-'):
-                    preview_lines.append(f"    {line.strip()}")
-                elif not line.strip().startswith('#'):
+        # Show a preview of key insights for single images
+        if not is_multi_image:
+            print("\n🔍 Quick Preview:")
+            print("="*50)
+            lines = documentation_text.split('\n')
+            preview_lines = []
+            section_count = 0
+            
+            for line in lines:
+                if line.strip().startswith('##') and section_count < 3:  # Show first 3 sections
+                    section_count += 1
                     preview_lines.append(f"  {line.strip()}")
-        
-        for line in preview_lines[:12]:  # Limit preview length
-            print(line)
-        
-        if len(preview_lines) > 12:
-            print("  ...")
+                elif line.strip() and section_count <= 3 and len(preview_lines) < 15:
+                    if line.strip().startswith('**') or line.strip().startswith('1.') or line.strip().startswith('-'):
+                        preview_lines.append(f"    {line.strip()}")
+                    elif not line.strip().startswith('#'):
+                        preview_lines.append(f"  {line.strip()}")
+            
+            for line in preview_lines[:12]:  # Limit preview length
+                print(line)
+            
+            if len(preview_lines) > 12:
+                print("  ...")
         
         print(f"\n📖 View complete analysis: {markdown_filename}")
         
         return markdown_filename
         
     except Exception as e:
-        logger.error(f"❌ Failed to analyze image: {e}")
+        logger.error(f"❌ Failed to analyze image{'s' if len(image_paths) > 1 else ''}: {e}")
         print(f"❌ Analysis failed: {e}")
         
         # Provide helpful error context
@@ -341,8 +331,12 @@ def analyze_dashboard_image(image_path: str) -> Optional[str]:
             print("💡 Check your AWS credentials and Bedrock permissions.")
         elif "not found" in str(e).lower():
             print("💡 Double-check the image file path.")
+        elif "ValidationException" in str(e) or "PayloadTooLargeException" in str(e):
+            print("💡 Multiple images may be too large. Try with fewer images or smaller files.")
+        elif "Credentials" in str(e) or "Token" in str(e):
+            print("💡 Credential issue detected. Please refresh your AWS credentials.")
         else:
-            print("💡 Please verify your AWS credentials and image file.")
+            print("💡 Please verify your AWS credentials and image files.")
         
         return None
 
@@ -438,185 +432,6 @@ def find_recent_images() -> List[str]:
     # Sort by modification time (newest first) and return top 10
     recent_images.sort(key=lambda x: x[1], reverse=True)
     return [img[0] for img in recent_images[:10]]
-
-
-def generate_multi_dashboard_documentation_direct(image_paths: List[str]) -> Optional[str]:
-    """Generate consolidated documentation from multiple dashboard images."""
-    try:
-        print(f"🤖 Generating comprehensive documentation from {len(image_paths)} dashboard images...")
-        
-        # Prepare all images for analysis
-        image_data_list = []
-        
-        for i, image_path in enumerate(image_paths, 1):
-            print(f"Processing image {i}/{len(image_paths)}: {os.path.basename(image_path)}")
-            
-            # Handle potential unicode issues in file paths
-            if not os.path.exists(image_path):
-                # Try to find the file with glob to handle unicode characters
-                import glob
-                dir_path = os.path.dirname(image_path) if os.path.dirname(image_path) else "."
-                basename = os.path.basename(image_path)
-                pattern = os.path.join(dir_path, "*" + basename.replace(" ", "*").replace("PM", "*PM*").replace("AM", "*AM*") + "*")
-                matches = glob.glob(pattern)
-                if matches:
-                    image_path = matches[0]
-                    print(f"Resolved path to: {image_path}")
-            
-            # Validate image file
-            is_valid, message = validate_image_file(image_path)
-            if not is_valid:
-                print(f"❌ {message}")
-                continue
-                
-            image_path_clean = image_path.strip().strip('"').strip("'")
-            
-            # Read and encode image
-            with open(image_path_clean, 'rb') as image_file:
-                image_data = image_file.read()
-                image_base64 = base64.b64encode(image_data).decode('utf-8')
-            
-            # Determine media type
-            file_ext = os.path.splitext(image_path_clean)[1].lower()
-            media_type_map = {
-                '.png': 'image/png',
-                '.jpg': 'image/jpeg', 
-                '.jpeg': 'image/jpeg',
-                '.gif': 'image/gif',
-                '.webp': 'image/webp',
-                '.bmp': 'image/bmp'
-            }
-            media_type = media_type_map.get(file_ext, 'image/jpeg')
-            
-            image_data_list.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": media_type,
-                    "data": image_base64
-                }
-            })
-        
-        if not image_data_list:
-            print("❌ No valid images to process")
-            return None
-            
-        print(f"✅ Successfully processed {len(image_data_list)} images for analysis")
-        # Use unified prompt for multi-image documentation
-        unified_prompt = create_unified_prompt(is_multi_image=True)
-        
-        # Initialize Bedrock client
-        print("Connecting to AWS Bedrock AI...")
-        bedrock = get_bedrock_client()
-        
-        # Prepare messages with all images
-        content_list = image_data_list + [{
-            "type": "text",
-            "text": unified_prompt
-        }]
-        
-        print(f"Sending {len(image_data_list)} images to Bedrock...")
-        
-        messages = [{
-            "role": "user",
-            "content": content_list
-        }]
-        
-        body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 6000,
-            "messages": messages,
-            "temperature": 0.1
-        }
-        
-        # Calculate approximate payload size
-        body_str = json.dumps(body)
-        payload_size_mb = len(body_str.encode('utf-8')) / (1024 * 1024)
-        print(f"Payload size: {payload_size_mb:.2f} MB")
-        
-        if payload_size_mb > 20:
-            print("⚠️ Payload might be too large for Bedrock")
-        
-        print("Calling Bedrock API...")
-        # Call Bedrock with vision model
-        response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
-            body=json.dumps(body),
-            contentType='application/json'
-        )
-        
-        # Parse response  
-        response_body = json.loads(response['body'].read())
-        documentation_text = response_body['content'][0]['text']
-        
-        # Remove extra spacing after header tags
-        documentation_text = documentation_text.replace('<h2>Objective</h2>\n\n', '<h2>Objective</h2>\n')
-        documentation_text = documentation_text.replace('<h2>Objective</h2>\n ', '<h2>Objective</h2>\n')
-        documentation_text = documentation_text.replace('<h3>', '\n<h3>')  # Ensure h3 tags have proper spacing
-        
-        # Generate filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        doc_filename = f"outputs/multi_dashboard_howto_{timestamp}.md"
-        
-        # Ensure outputs and images directories exist
-        os.makedirs("outputs", exist_ok=True)
-        os.makedirs("outputs/images", exist_ok=True)
-        
-        # Copy source images to outputs/images for embedding
-        import shutil
-        for image_path in image_paths:
-            image_name = os.path.basename(image_path)
-            dest_path = f"outputs/images/{image_name}"
-            try:
-                shutil.copy2(image_path, dest_path)
-                print(f"Copied image: {image_name}")
-            except Exception as e:
-                print(f"⚠️ Could not copy {image_name}: {e}")
-        
-        # Create Markdown documentation with center alignment for Confluence
-        markdown_filename = doc_filename  # Keep .md extension
-        with open(markdown_filename, 'w', encoding='utf-8') as f:
-            # Write centered title without metadata table
-            f.write('<div style="text-align: center; max-width: 800px; margin: 0 auto;">\n\n')
-            f.write("<h1>Dashboard User Guide</h1>\n")
-            
-            # Main documentation content
-            f.write(documentation_text)
-            f.write("\n\n")
-            
-            # Add screenshots section at the end
-            f.write("<h2>Dashboard Screenshots</h2>\n\n")
-            f.write(f"**Screenshot Analysis Date:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
-            f.write(f"**Screenshots Analyzed:** {len(image_paths)} images\n\n")
-            f.write(f"*Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis*\n\n")
-            
-            # Clean footer
-            f.write("---\n\n")
-            f.write("*This documentation was automatically generated using AI analysis.*\n")
-            f.write("*For questions or updates, please contact the BI team.*\n\n")
-            f.write("</div>")
-        
-        logger.info(f"✅ Multi-dashboard documentation generated: {markdown_filename}")
-        print(f"Markdown documentation saved: {markdown_filename}")
-        print(f"Ready for Confluence import!")
-        
-        return markdown_filename
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to generate multi-dashboard documentation: {e}")
-        print(f"❌ Multi-dashboard documentation generation failed")
-        print(f"💡 Error details: {str(e)}")
-        print(f"💡 Error type: {type(e).__name__}")
-        if "ExpiredToken" in str(e):
-            print("💡 Your AWS credentials have expired. Please refresh them in Okta.")
-        elif "ValidationException" in str(e) or "PayloadTooLargeException" in str(e):
-            print("💡 Multiple images may be too large. Try with fewer images or smaller files.")
-        elif "Credentials" in str(e) or "Token" in str(e):
-            print("💡 Credential issue detected. Please refresh your AWS credentials.")
-        return None
-
-
-
 
 
 def upload_dashboard_image():
@@ -738,7 +553,7 @@ def upload_dashboard_image():
     if len(selected_images) == 1:
         # Single image flow
         image_path = selected_images[0]
-        result = analyze_dashboard_image(image_path)
+        result = analyze_dashboard_images([image_path])
 
         if result:
             print(f"\nAnalysis Complete!")
@@ -777,7 +592,7 @@ def upload_dashboard_image():
         return
 
     # Multi-image flow - generate consolidated documentation
-    doc_file = generate_multi_dashboard_documentation_direct(selected_images)
+    doc_file = analyze_dashboard_images(selected_images)
 
     if doc_file:
         print(f"\nMulti-image Analysis Complete!")

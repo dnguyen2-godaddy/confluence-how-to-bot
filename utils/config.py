@@ -60,6 +60,11 @@ class Config:
         return os.getenv('AWS_REGION', 'us-west-2')
     
     @property
+    def aws_profile(self) -> Optional[str]:
+        """Get AWS profile from environment (for AWS CLI profiles)."""
+        return os.getenv('AWS_PROFILE')
+    
+    @property
     def openai_api_key(self) -> Optional[str]:
         """Get OpenAI API key from environment."""
         return os.getenv('OPENAI_API_KEY')
@@ -95,12 +100,25 @@ class Config:
         return all(var is not None and var != '' for var in required_vars)
     
     def validate_aws_config(self) -> bool:
-        """Validate that all required AWS configuration is present."""
-        required_vars = [
-            self.aws_access_key_id,
-            self.aws_secret_access_key
-        ]
-        return all(var is not None and var != '' for var in required_vars)
+        """Validate that AWS configuration is present.
+        
+        Returns True if either:
+        1. Explicit credentials are provided (access key + secret key)
+        2. AWS profile is specified
+        3. No explicit config (relies on AWS credential chain)
+        """
+        # Check if explicit credentials are provided
+        has_explicit_creds = (
+            self.aws_access_key_id is not None and self.aws_access_key_id != '' and
+            self.aws_secret_access_key is not None and self.aws_secret_access_key != ''
+        )
+        
+        # Check if AWS profile is specified
+        has_profile = self.aws_profile is not None and self.aws_profile != ''
+        
+        # If no explicit config, assume AWS credential chain will handle it
+        # This covers: IAM roles, AWS SSO, instance profiles, etc.
+        return has_explicit_creds or has_profile or (not has_explicit_creds and not has_profile)
     
     def validate_ai_config(self) -> bool:
         """Validate that AI configuration is present."""

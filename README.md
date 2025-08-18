@@ -39,11 +39,37 @@ cp env.example .env
 nano .env
 ```
 
-#### AWS Credentials (Required)
+#### AWS Authentication (Required)
+
+**For GoDaddy Employees (Recommended):**
+The AWS authentication uses GoDaddy's corporate Okta SSO with these steps:
+
+1. **Install aws-okta-processor** (if not already installed):
+   ```bash
+   # Usually pre-installed on GoDaddy laptops
+   # Contact IT if not available
+   ```
+
+2. **Configure aws-okta-processor for GoDaddy Okta** (usually pre-configured)
+
+3. **Authentication flow:**
+   - Okta username/password
+   - MFA with YubiKey hardware token  
+   - Assumes IAM role: `GD-AWS-USA-GD-AISummerCa-Dev-Private-PowerUser`
+   - Generates temporary AWS credentials (1 hour expiry)
+
+4. **Configure .env file:**
+   ```env
+   # Use AWS profile authentication (no keys needed)
+   AWS_PROFILE=default
+   AWS_REGION=us-west-2
+   ```
+
+**For External Users:**
 ```env
 AWS_ACCESS_KEY_ID=your_aws_access_key_here
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
-AWS_SESSION_TOKEN=your_aws_session_token_here  # For Okta/SAML
+AWS_SESSION_TOKEN=your_aws_session_token_here  # For temporary credentials
 AWS_REGION=us-west-2
 ```
 
@@ -286,6 +312,41 @@ This dashboard tracks key sales metrics and KPIs for the sales organization...
 - ✅ Use environment-based credential management
 - ✅ No hardcoded credentials in code
 - ✅ Follow AWS IAM best practices
+
+## 🚨 Troubleshooting
+
+### GoDaddy Okta SSO Issues
+
+**Problem: "ExpiredTokenException" or authentication errors**
+```
+Solution: Your Okta session has expired (1 hour limit)
+1. Re-run any AWS command to trigger automatic re-authentication
+2. Enter your Okta credentials when prompted
+3. Use YubiKey for MFA when requested
+```
+
+**Problem: "aws-okta-processor not found"**
+```
+Solution: Contact GoDaddy IT to install aws-okta-processor
+- Usually pre-installed on corporate laptops
+- Required for GoDaddy AWS access
+```
+
+**Problem: "Access Denied" for Bedrock**
+```
+Solution: Verify you're using the correct role
+1. Check: aws sts get-caller-identity --profile default
+2. Should show: GD-AWS-USA-GD-AISummerCa-Dev-Private-PowerUser
+3. Contact AI team if using different role
+```
+
+**Problem: YubiKey not working**
+```
+Solution: YubiKey hardware token issues
+1. Ensure YubiKey is properly inserted
+2. Try different USB port
+3. Contact IT if YubiKey is damaged
+```
 
 ### API Token Security
 - ✅ Store tokens in `.env` file (never commit to git)
