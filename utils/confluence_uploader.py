@@ -53,13 +53,19 @@ class ConfluenceUploader:
         }
         
         # API base URL - ensure we're using the wiki endpoint
-        if '/wiki' not in self.confluence_url:
+        if self.confluence_url and '/wiki' not in self.confluence_url:
             wiki_url = urljoin(self.confluence_url, '/wiki/')
-        else:
+        elif self.confluence_url:
             wiki_url = self.confluence_url
+        else:
+            wiki_url = 'http://localhost/wiki/'  # Fallback for testing
+        
         self.api_base = urljoin(wiki_url, 'rest/api/')
         
-        logger.info(f"🔗 Confluence uploader initialized for: {self.confluence_url}")
+        if self.confluence_url:
+            logger.info(f"🔗 Confluence uploader initialized for: {self.confluence_url}")
+        else:
+            logger.warning("🔗 Confluence uploader initialized with no URL (test mode)")
     
     def test_connection(self) -> bool:
         """Test Confluence API connection."""
