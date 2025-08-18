@@ -227,8 +227,8 @@ class ImageProcessor:
                     image_path = matches[0]
                     logger.info(f"Resolved path to: {image_path}")
             
-            # Prepare image data
-            image_data = cls.prepare_image_for_bedrock(image_path)
+            # Prepare image data with optimization enabled by default
+            image_data = cls.prepare_image_for_bedrock(image_path, optimize=True)
             if image_data:
                 image_data_list.append(image_data)
                 valid_image_paths.append(image_path.strip().strip('"').strip("'"))

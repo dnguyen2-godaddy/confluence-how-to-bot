@@ -27,11 +27,8 @@ OPTIMIZATION_QUALITY = int(os.getenv('OPTIMIZATION_QUALITY', '85'))  # JPEG qual
 OPTIMIZATION_MAX_WIDTH = int(os.getenv('OPTIMIZATION_MAX_WIDTH', '1920'))
 OPTIMIZATION_MAX_HEIGHT = int(os.getenv('OPTIMIZATION_MAX_HEIGHT', '1080'))
 
-# Analysis depth configuration
-ANALYSIS_DEPTH = os.getenv('ANALYSIS_DEPTH', 'comprehensive').lower()  # 'basic' or 'comprehensive'
-ENABLE_DETAILED_METRICS = os.getenv('ENABLE_DETAILED_METRICS', 'true').lower() == 'true'
-ENABLE_BUSINESS_INSIGHTS = os.getenv('ENABLE_BUSINESS_INSIGHTS', 'true').lower() == 'true'
-ENABLE_TECHNICAL_SPECS = os.getenv('ENABLE_TECHNICAL_SPECS', 'true').lower() == 'true'
+# Analysis configuration (keeping it simple and working)
+ENABLE_ENHANCED_ANALYSIS = os.getenv('ENABLE_ENHANCED_ANALYSIS', 'true').lower() == 'true'
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -66,172 +63,111 @@ def get_bedrock_client():
 
 
 def create_unified_prompt(is_multi_image: bool = False) -> str:
-    """Create a comprehensive prompt for in-depth dashboard analysis and documentation generation."""
+    """Create a unified prompt for dashboard analysis and documentation generation."""
     
     # Define conditional content  
     multi_note = " across multiple dashboard sections" if is_multi_image else ""
     
-    # Base prompt for comprehensive analysis
-    comprehensive_prompt = f"""You are a senior business intelligence analyst and data visualization expert with deep expertise in dashboard design, business metrics, and user experience. Your task is to perform an extremely detailed, word-by-word analysis of the dashboard images to create comprehensive, actionable documentation for GoDaddy stakeholders.
+    return f"""You are a business intelligence expert creating documentation guidelines for GoDaddy stakeholders. Analyze the dashboard images to understand the objective, information/products it conveys, and how it helps users/stakeholders.
 
-## ANALYSIS APPROACH - EXTREMELY DETAILED
+INSTRUCTIONS:
+Create professional documentation that data analysts at GoDaddy will use to help their stakeholders understand how to use their dashboards. Focus on practical usage and navigation guidance for business users.
 
-### VISUAL ELEMENT ANALYSIS
-- **Text Analysis**: Read and analyze EVERY word, number, and label visible in the screenshots
-- **Layout Analysis**: Examine the exact positioning, grouping, and visual hierarchy of elements
-- **Color Analysis**: Note specific colors, color schemes, and their business significance
-- **Icon Analysis**: Identify and describe every icon, symbol, and visual indicator
-- **Interactive Elements**: Catalog every button, dropdown, filter, and clickable component
+ANALYSIS REQUIREMENTS:
+- Carefully examine all visible filters, dropdowns, buttons, and interactive elements in the dashboard images
+- Note specific control names, field names, and options visible in the interface
+- Identify clickable elements, drill-down capabilities, and navigation features
+- Report ONLY what is clearly visible in the screenshots - do not make assumptions
 
-### BUSINESS CONTEXT ANALYSIS
-- **Metric Definitions**: Provide detailed explanations of what each metric measures and why it matters
-- **Business Impact**: Explain how each visualization helps stakeholders make decisions
-- **Data Relationships**: Identify connections between different metrics and views
-- **Trend Analysis**: Note any visible trends, patterns, or anomalies in the data
-- **Performance Indicators**: Highlight KPIs, targets, and performance benchmarks
+CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
+- MANDATORY: Use ONLY the exact structure provided below - NO other sections allowed
+- FORBIDDEN: Do NOT create sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations", "Interactive Features", "Usage Guidelines"
+- REQUIRED SECTIONS ONLY: Objective, New Enhanced View, New Additions, Detailed Overview (numbered 1-5), Dashboard Controls, How tos
+- Use <h2> for main sections (Objective, New Enhanced View, etc.)
+- Use <h3> for numbered detailed views (1., 2., 3., 4., 5.)
+- Use <strong>bold text</strong> for subsection names: <strong>Metrics Reported</strong>, <strong>Data Source</strong>, <strong>View Specific Drill Down Control</strong>
+- CRITICAL: Follow the template structure word-for-word - do not add extra sections
+- Write in professional business language for GoDaddy stakeholders
 
-### TECHNICAL ANALYSIS
-- **Data Sources**: Identify specific data tables, systems, or sources mentioned
-- **Refresh Patterns**: Note update frequencies and data freshness indicators
-- **Filter Logic**: Explain how filters work and their impact on data views
-- **Drill-Down Capabilities**: Detail available navigation paths and data exploration options
-- **Export/Sharing**: Note any data export or collaboration features
+CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
+- OUTPUT ONLY THE DOCUMENTATION using the EXACT structure above
+- START with "<h2>Objective</h2>" immediately - no other content before it
+- NO EXTRA LINE BREAKS: Content must follow immediately after each header tag
+- CRITICAL: After <h2>Objective</h2> the next line must be the explanation text with NO blank line in between
+- INCLUDE ALL sections in the exact order: Objective → New Enhanced View → New Additions → Detailed Overview → Dashboard Controls → How tos
+- FORBIDDEN: Do NOT create any sections not shown in the template
+- FORBIDDEN: Do NOT use sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations"
+- MANDATORY: Use the 5 numbered detailed views (<h3>1., <h3>2., <h3>3., <h3>4., <h3>5.)
+- NO introductory text, explanations, or template deviations allowed
 
-## COMPREHENSIVE DOCUMENTATION STRUCTURE
+OUTPUT FORMAT (copy this structure exactly - NO BLANK LINES between headers and content):
 
-### 1. EXECUTIVE SUMMARY
-- **Dashboard Purpose**: Detailed explanation of business objectives and use cases
-- **Target Audience**: Specific stakeholder groups and their information needs
-- **Business Value**: Quantified benefits and decision-making impact
-- **Key Insights**: Most important findings and actionable takeaways
-
-### 2. DASHBOARD ARCHITECTURE
-- **Overall Layout**: Detailed description of the dashboard structure and organization
-- **Navigation Flow**: Step-by-step user journey through the dashboard
-- **View Relationships**: How different sections connect and complement each other
-- **Responsive Design**: Notes on mobile/tablet compatibility and layout adaptations
-
-### 3. DETAILED VIEW ANALYSIS (For Each View)
-- **View Purpose**: Specific business questions this view answers
-- **Data Elements**: Every metric, chart, and data point with detailed explanations
-- **Visual Design**: Chart types, color schemes, and layout choices
-- **Interactive Features**: Filters, drill-downs, and user controls
-- **Business Logic**: How the data is calculated and what it represents
-- **Performance Notes**: Loading times, data refresh, and system performance
-- **User Experience**: Ease of use, accessibility, and user guidance
-
-### 4. METRIC DEEP DIVE
-- **Definition**: Precise explanation of what each metric measures
-- **Calculation**: How the metric is computed (if visible)
-- **Business Context**: Why this metric matters to GoDaddy
-- **Benchmarks**: Target values, historical comparisons, and industry standards
-- **Trends**: Visible patterns, seasonality, and performance changes
-- **Actionability**: What stakeholders should do based on this metric
-
-### 5. INTERACTIVE ELEMENTS CATALOG
-- **Filter Controls**: Every dropdown, date picker, and selection tool
-- **Navigation Elements**: Buttons, links, and menu options
-- **Drill-Down Paths**: Available data exploration routes
-- **Export Options**: Data download and sharing capabilities
-- **User Preferences**: Customization and personalization features
-
-### 6. DATA QUALITY ASSESSMENT
-- **Data Freshness**: Update timestamps and refresh indicators
-- **Completeness**: Missing data indicators and coverage notes
-- **Accuracy**: Data validation and quality checks
-- **Consistency**: Cross-view data alignment and verification
-- **Reliability**: System uptime and data availability
-
-### 7. BUSINESS INTELLIGENCE INSIGHTS
-- **Pattern Recognition**: Identified trends, cycles, and anomalies
-- **Correlation Analysis**: Relationships between different metrics
-- **Performance Analysis**: Success indicators and improvement areas
-- **Risk Assessment**: Warning signs and areas of concern
-- **Opportunity Identification**: Growth potential and optimization areas
-
-### 8. USER GUIDANCE AND BEST PRACTICES
-- **Getting Started**: Step-by-step first-time user instructions
-- **Daily Operations**: Routine monitoring and analysis procedures
-- **Advanced Usage**: Power user features and optimization tips
-- **Troubleshooting**: Common issues and resolution steps
-- **Training Recommendations**: Skills needed and learning resources
-
-### 9. TECHNICAL SPECIFICATIONS
-- **System Requirements**: Browser compatibility and performance needs
-- **Data Sources**: Specific databases, APIs, and integration points
-- **Security**: Access controls and data protection measures
-- **Performance**: Loading times, response rates, and scalability
-- **Maintenance**: Update schedules and system administration
-
-### 10. FUTURE ENHANCEMENTS
-- **Feature Requests**: Identified improvement opportunities
-- **Integration Possibilities**: Connections with other systems
-- **Advanced Analytics**: Potential for ML/AI enhancements
-- **User Experience**: Interface and workflow improvements
-- **Data Expansion**: Additional metrics and data sources
-
-## CRITICAL REQUIREMENTS
-
-### ACCURACY AND DETAIL
-- **Word-by-Word Analysis**: Read and analyze every visible text element
-- **No Assumptions**: Only report what is clearly visible in the screenshots
-- **Specific Details**: Use exact names, numbers, and labels from the images
-- **Business Context**: Provide GoDaddy-specific insights and relevance
-
-### FORMATTING AND STRUCTURE
-- Use clear, professional business language
-- Include specific examples and data points from the screenshots
-- Provide actionable insights and recommendations
-- Structure information logically with clear headings and sections
-- Include visual descriptions for accessibility
-
-### COMPREHENSIVENESS
-- Cover every visible element and feature
-- Explain the business purpose and value of each component
-- Provide context for technical and non-technical stakeholders
-- Include both high-level overview and detailed analysis
-- Address user needs at all experience levels
-
-## OUTPUT FORMAT
-
-Create a comprehensive, well-structured document that follows the sections above. Each section should contain detailed analysis with specific examples from the dashboard images. Focus on providing actionable insights that help GoDaddy stakeholders understand, use, and derive value from the dashboard.
-
-Remember: This is not just a description - it's a comprehensive business intelligence document that should enable stakeholders to make informed decisions and take action based on the dashboard insights."""
-
-    # Basic prompt for simpler analysis
-    basic_prompt = f"""You are a business intelligence expert creating documentation for GoDaddy stakeholders. Analyze the dashboard images to understand the objective, information/products it conveys, and how it helps users/stakeholders.
-
-## BASIC ANALYSIS REQUIREMENTS
-- Examine visible filters, dropdowns, buttons, and interactive elements
-- Note specific control names, field names, and options visible
-- Identify clickable elements and navigation features
-- Report ONLY what is clearly visible in the screenshots
-
-## BASIC DOCUMENTATION STRUCTURE
-
-### 1. Objective
-[Explain the dashboard's purpose in 2-3 sentences]
-
-### 2. Dashboard Views
-[List and briefly describe the main views visible]
-
-### 3. Key Metrics
-[Identify the main metrics and what they measure]
-
-### 4. Interactive Controls
-[List filters, dropdowns, and other controls]
-
-### 5. How to Use
-[Basic step-by-step instructions]
-
-## OUTPUT FORMAT
-Create a concise, well-structured document following the sections above. Focus on essential information for basic understanding and usage."""
-
-    # Return appropriate prompt based on configuration
-    if ANALYSIS_DEPTH == 'comprehensive':
-        return comprehensive_prompt
-    else:
-        return basic_prompt
+<h2>Objective</h2>
+[Explain the dashboard's purpose in 2-3 sentences. What business problems does it solve and how does it help GoDaddy stakeholders make informed decisions{multi_note}]
+<h2>New Enhanced [Dashboard Name] View</h2>
+The <strong>[Dashboard Name]</strong> in QuickSight has the following views:
+1. [View 1 Name]
+2. [View 2 Name] 
+3. [View 3 Name]
+4. [View 4 Name]
+5. [View 5 Name]
+For <strong>[Dashboard Name]</strong> in QuickSight, you can also navigate to [X] other additional views for additional insights:
+1. [Additional View 1]
+2. [Additional View 2]
+All these views are discussed in detail below.
+<h2>New Additions, Features and Changes</h2>
+Unlike the previous version, the new enhanced version of [Dashboard Name] in QuickSight has several additional metrics and features:
+1. <strong>Faster Loading:</strong> [Description of performance improvements]
+2. <strong>Consolidated Dashboard View:</strong> [Description of view consolidation]
+3. <strong>Enhanced [Feature] Diagnostics:</strong> [Description of diagnostic improvements]
+4. <strong>Future Period Pacing:</strong> [Description of pacing features]
+5. <strong>Prior [Metric] Tracking:</strong> [Description of tracking capabilities]
+6. <strong>[Metric] ML Momentum View:</strong> [Description of ML features]
+7. <strong>Controls:</strong> [Description of control improvements]
+<h2>Detailed Overview of Each View</h2>
+<h3>1. [View 1 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+3. [Metric 3]: [Description of what it measures]
+<strong>View Specific Drill Down Control</strong>
+[Description of available drill-down options and controls]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h3>2. [View 2 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h3>3. [View 3 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h3>4. [View 4 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h3>5. [View 5 Name]</h3>
+[Description of what this view shows and its business purpose]
+<strong>Metrics Reported</strong>
+1. [Metric 1]: [Description of what it measures]
+2. [Metric 2]: [Description of what it measures]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules]
+<h2>Dashboard Controls</h2>
+[List and describe the specific filters, dropdowns, date selectors, and other controls visible in the dashboard images. Include their exact names and locations as shown in the screenshots.]
+<h2>How tos:</h2>
+[Based on what you see in the dashboard images, provide specific step-by-step instructions for using THIS dashboard. Include actual filter names, button locations, and specific features visible in the screenshots. Make this practical and actionable for users of this specific dashboard.]
+[Include all images used, in-ligned with text and document.]"""
 
 
 def validate_image_file(image_path: str) -> tuple[bool, str]:
@@ -263,7 +199,7 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
             ImageProcessor.MAX_WIDTH = OPTIMIZATION_MAX_WIDTH
             ImageProcessor.MAX_HEIGHT = OPTIMIZATION_MAX_HEIGHT
         
-        image_data_list, valid_image_paths = ImageProcessor.prepare_multiple_images_for_bedrock(image_paths, optimize=ENABLE_IMAGE_OPTIMIZATION)
+        image_data_list, valid_image_paths = ImageProcessor.prepare_multiple_images_for_bedrock(image_paths)
         
         if not image_data_list:
             print("❌ No valid images to process")
