@@ -21,6 +21,12 @@ from utils import config, ImageProcessor
 # Load environment variables
 load_dotenv()
 
+# Configuration
+ENABLE_IMAGE_OPTIMIZATION = os.getenv('ENABLE_IMAGE_OPTIMIZATION', 'true').lower() == 'true'
+OPTIMIZATION_QUALITY = int(os.getenv('OPTIMIZATION_QUALITY', '85'))  # JPEG quality 0-100
+OPTIMIZATION_MAX_WIDTH = int(os.getenv('OPTIMIZATION_MAX_WIDTH', '1920'))
+OPTIMIZATION_MAX_HEIGHT = int(os.getenv('OPTIMIZATION_MAX_HEIGHT', '1080'))
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -183,7 +189,15 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
         print(f"🤖 Generating {'comprehensive' if is_multi_image else ''} documentation from {len(image_paths)} dashboard image{'s' if is_multi_image else ''}...")
         
         # Prepare all images for analysis using centralized utilities
-        image_data_list, valid_image_paths = ImageProcessor.prepare_multiple_images_for_bedrock(image_paths)
+        # Apply optimization settings if enabled
+        if ENABLE_IMAGE_OPTIMIZATION:
+            print(f"🔧 Image optimization enabled (Quality: {OPTIMIZATION_QUALITY}%, Max: {OPTIMIZATION_MAX_WIDTH}x{OPTIMIZATION_MAX_HEIGHT})")
+            # Update ImageProcessor settings with our configuration
+            ImageProcessor.JPEG_QUALITY = OPTIMIZATION_QUALITY
+            ImageProcessor.MAX_WIDTH = OPTIMIZATION_MAX_WIDTH
+            ImageProcessor.MAX_HEIGHT = OPTIMIZATION_MAX_HEIGHT
+        
+        image_data_list, valid_image_paths = ImageProcessor.prepare_multiple_images_for_bedrock(image_paths, optimize=ENABLE_IMAGE_OPTIMIZATION)
         
         if not image_data_list:
             print("❌ No valid images to process")

@@ -29,6 +29,13 @@ class ImageProcessor:
     # Maximum file size (10MB)
     MAX_FILE_SIZE = 10 * 1024 * 1024
     
+    # Image optimization settings
+    MAX_WIDTH = 1920  # Maximum width for dashboard screenshots
+    MAX_HEIGHT = 1080  # Maximum height for dashboard screenshots
+    JPEG_QUALITY = 85  # JPEG compression quality (0-100)
+    WEBP_QUALITY = 80  # WebP compression quality (0-100)
+    PNG_COMPRESS_LEVEL = 6  # PNG compression level (0-9)
+    
     @classmethod
     def validate_image_file(cls, image_path: str) -> Tuple[bool, str]:
         """Validate the uploaded image file."""
@@ -60,9 +67,100 @@ class ImageProcessor:
         return cls.SUPPORTED_FORMATS.get(file_ext, 'image/jpeg')
     
     @classmethod
-    def encode_image_to_base64(cls, image_path: str) -> Optional[str]:
-        """Encode image file to base64 string."""
+    def optimize_image(cls, image_path: str, output_path: str = None, 
+                      max_width: int = None, max_height: int = None,
+                      quality: int = None, format: str = 'auto') -> Optional[str]:
+        """Optimize image by resizing and compressing."""
         try:
+            from PIL import Image, ImageOps
+            
+            # Set defaults
+            max_width = max_width or cls.MAX_WIDTH
+            max_height = max_height or cls.MAX_HEIGHT
+            
+            # Open image
+            with Image.open(image_path) as img:
+                # Convert to RGB if necessary
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+                
+                # Get original dimensions
+                orig_width, orig_height = img.size
+                logger.info(f"Original image: {orig_width}x{orig_height}")
+                
+                # Resize if too large
+                if orig_width > max_width or orig_height > max_height:
+                    img = ImageOps.fit(img, (max_width, max_height), method=Image.Resampling.LANCZOS)
+                    logger.info(f"Resized to: {img.size[0]}x{img.size[1]}")
+                
+                # Determine output format
+                if format == 'auto':
+                    # Prefer WebP for better compression, fallback to JPEG
+                    if cls._has_webp_support():
+                        output_format = 'WEBP'
+                        output_ext = '.webp'
+                        quality = quality or cls.WEBP_QUALITY
+                    else:
+                        output_format = 'JPEG'
+                        output_ext = '.jpg'
+                        quality = quality or cls.JPEG_QUALITY
+                else:
+                    output_format = format.upper()
+                    output_ext = f'.{format.lower()}'
+                    quality = quality or cls.JPEG_QUALITY
+                
+                # Generate output path if not provided
+                if not output_path:
+                    base_name = os.path.splitext(image_path)[0]
+                    output_path = f"{base_name}_optimized{output_ext}"
+                
+                # Save optimized image
+                if output_format == 'WEBP':
+                    img.save(output_path, 'WEBP', quality=quality, method=6)
+                elif output_format == 'JPEG':
+                    img.save(output_path, 'JPEG', quality=quality, optimize=True)
+                elif output_format == 'PNG':
+                    img.save(output_path, 'PNG', optimize=True, compress_level=cls.PNG_COMPRESS_LEVEL)
+                else:
+                    img.save(output_path, output_format)
+                
+                # Get optimized file size
+                optimized_size = os.path.getsize(output_path)
+                original_size = os.path.getsize(image_path)
+                compression_ratio = (1 - optimized_size / original_size) * 100
+                
+                logger.info(f"Optimized image saved: {output_path}")
+                logger.info(f"Size reduction: {original_size / 1024:.1f}KB → {optimized_size / 1024:.1f}KB ({compression_ratio:.1f}% smaller)")
+                
+                return output_path
+                
+        except ImportError:
+            logger.warning("PIL/Pillow not available, skipping image optimization")
+            return image_path
+        except Exception as e:
+            logger.error(f"Failed to optimize image {image_path}: {e}")
+            return image_path
+    
+    @classmethod
+    def _has_webp_support(cls) -> bool:
+        """Check if WebP format is supported."""
+        try:
+            from PIL import Image
+            return 'WEBP' in Image.OPEN
+        except:
+            return False
+    
+    @classmethod
+    def encode_image_to_base64(cls, image_path: str, optimize: bool = True) -> Optional[str]:
+        """Encode image file to base64 string with optional optimization."""
+        try:
+            # Optimize image if requested and PIL is available
+            if optimize:
+                optimized_path = cls.optimize_image(image_path)
+                if optimized_path and optimized_path != image_path:
+                    image_path = optimized_path
+                    logger.info(f"Using optimized image: {os.path.basename(optimized_path)}")
+            
             with open(image_path, 'rb') as image_file:
                 image_data = image_file.read()
                 return base64.b64encode(image_data).decode('utf-8')
@@ -71,8 +169,8 @@ class ImageProcessor:
             return None
     
     @classmethod
-    def prepare_image_for_bedrock(cls, image_path: str) -> Optional[Dict[str, Any]]:
-        """Prepare image data for AWS Bedrock API."""
+    def prepare_image_for_bedrock(cls, image_path: str, optimize: bool = True) -> Optional[Dict[str, Any]]:
+        """Prepare image data for AWS Bedrock API with optional optimization."""
         # Validate image first
         is_valid, message = cls.validate_image_file(image_path)
         if not is_valid:
@@ -82,12 +180,21 @@ class ImageProcessor:
         # Clean path
         clean_path = image_path.strip().strip('"').strip("'")
         
-        # Encode image
-        image_base64 = cls.encode_image_to_base64(clean_path)
+        # Encode image with optimization
+        image_base64 = cls.encode_image_to_base64(clean_path, optimize=optimize)
         if not image_base64:
             return None
         
-        # Get media type
+        # Get media type (use optimized image if available)
+        if optimize:
+            # Check if we have an optimized version
+            base_name = os.path.splitext(clean_path)[0]
+            for ext in ['.webp', '.jpg', '.png']:
+                optimized_path = f"{base_name}_optimized{ext}"
+                if os.path.exists(optimized_path):
+                    clean_path = optimized_path
+                    break
+        
         media_type = cls.get_media_type(clean_path)
         
         return {
