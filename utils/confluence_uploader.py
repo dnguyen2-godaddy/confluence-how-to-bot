@@ -152,9 +152,9 @@ class ConfluenceUploader:
         logger.info(f"Processing HTML content: {html_content[:200]}...")
         
         # For HTML content from dashboard analyzer, preserve ALL tags exactly
-        if html_content.startswith('<div') or '<h2>' in html_content:
+        if html_content.startswith('<div') or '<h2>' in html_content or '<h3>' in html_content or '<strong>' in html_content:
             logger.info(f"Detected HTML content - preserving exactly as-is: {html_content[:200]}...")
-            # Return HTML content completely unchanged
+            # Return HTML content completely unchanged - no processing at all
             return html_content
         
         # Handle the new structure: centered container with left-aligned content
@@ -254,15 +254,26 @@ class ConfluenceUploader:
     
     def _prepare_page_data(self, title: str, content: str, page_id: str = None, version: int = None) -> dict:
         """Prepare page data for Confluence API requests."""
+        # Debug: Log what type of content we're processing
+        logger.info(f"Preparing page data for title: {title}")
+        logger.info(f"Content starts with: {content[:100]}...")
+        
         # Convert markdown to Confluence storage format
         if content.startswith('#') or '##' in content:
+            logger.info("Detected markdown content - converting to HTML")
             storage_content = self.convert_markdown_to_confluence(content)
         elif content.startswith('<div') or '<h2>' in content:
             # Content is HTML from dashboard analyzer - process it for Confluence
+            logger.info("Detected HTML content - processing for Confluence")
             storage_content = self._post_process_html_for_confluence(content)
+            logger.info(f"HTML processing result: {storage_content[:200]}...")
         else:
             # Assume it's already in storage format
+            logger.info("Assuming content is already in storage format")
             storage_content = content
+        
+        # Debug: Log final storage content
+        logger.info(f"Final storage content: {storage_content[:200]}...")
         
         page_data = {
             'type': 'page',
