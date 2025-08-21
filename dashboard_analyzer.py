@@ -41,7 +41,7 @@ def get_bedrock_client():
     try:
         # Create session with the SSO profile
         session = boto3.Session(profile_name=profile_name)
-        client = session.client('bedrock-agent-runtime', region_name=config.aws_region)
+        client = session.client('bedrock-runtime', region_name=config.aws_region)
         
         logger.info(f"Using AWS SSO profile: {profile_name}")
         return client
@@ -52,7 +52,7 @@ def get_bedrock_client():
         
         # Fallback to credential chain method
         client_kwargs = {
-            'service_name': 'bedrock-agent-runtime',
+            'service_name': 'bedrock-runtime',
             'region_name': config.aws_region
         }
         
