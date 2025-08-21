@@ -553,11 +553,11 @@ def upload_dashboard_image():
                 if done == 'n':
                     break
             
-            img_path = input("📁 Enter image file path (or 'done' to finish, 'qq' to quit): ").strip()
+            img_path = input("📁 Enter image file path (or 'ff' to finish, 'qq' to quit): ").strip()
             if img_path.lower() in ['qq', 'q', 'exit']:
                 print("Goodbye!")
                 return
-            if img_path.lower() == 'done':
+            if img_path.lower() == 'ff':
                 if len(selected_images) >= 1:
                     break
                 else:
