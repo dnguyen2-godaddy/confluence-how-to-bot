@@ -1,91 +1,45 @@
-# 🚀 QuickSight Dashboard Image Analyzer
+# QuickSight Dashboard Image Analyzer
 
-AI-powered tool for analyzing QuickSight dashboard screenshots and automatically generating professional documentation with Confluence integration.
+An AI-powered tool that analyzes QuickSight dashboard screenshots and generates comprehensive documentation for GoDaddy stakeholders.
 
-## ✨ Features
+## Features
 
-- 🧠 **AI-Powered Analysis**: Advanced dashboard analysis using AWS Bedrock Claude 3.5 Sonnet
-- 📊 **Business Insights**: Comprehensive business intelligence and recommendations
-- 📈 **Visualization Breakdown**: Detailed analysis of charts, KPIs, and data patterns
-- ⚡ **Technical Assessment**: Performance evaluation and improvement suggestions
-- 📝 **Auto-Documentation**: AI-generated professional how-to guides
-- 🔗 **Confluence Integration**: Direct publishing to Confluence spaces
-- 🔍 **Smart File Detection**: Automatically finds recent images in common locations
+- **Image Analysis**: Upload QuickSight dashboard screenshots for AI analysis
+- **AI Analysis**: Comprehensive dashboard analysis with AWS Bedrock
+- **Documentation Generation**: Automatic creation of professional documentation
+- **Confluence Integration**: Direct publishing to Confluence with proper formatting
+- **Multi-Image Support**: Analyze multiple dashboard views simultaneously
+- **Professional Output**: Business-ready documentation for stakeholders
 
-## 🚀 Quick Start
+## Getting Started
 
-### 1. Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd confluence-how-to-bot
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 2. Configuration
-
-```bash
-# Copy environment template
-cp env.example .env
-
-# Edit .env with your credentials
-nano .env
-```
-
-#### AWS Authentication (Required)
-
-**For GoDaddy Employees (Recommended):**
-The AWS authentication uses GoDaddy's corporate Okta SSO with these steps:
-
-1. **Install aws-okta-processor** (if not already installed):
+1. **Clone the repository**
    ```bash
-   # Usually pre-installed on GoDaddy laptops
-   # Contact IT if not available
+   git clone https://github.com/your-username/confluence-how-to-bot.git
+   cd confluence-how-to-bot
    ```
 
-2. **Configure aws-okta-processor for GoDaddy Okta** (usually pre-configured)
-
-3. **Authentication flow:**
-   - Okta username/password
-   - MFA with YubiKey hardware token  
-   - Assumes IAM role: `GD-AWS-USA-GD-AISummerCa-Dev-Private-PowerUser`
-   - Generates temporary AWS credentials (1 hour expiry)
-
-4. **Configure .env file:**
-   ```env
-   # Use AWS profile authentication (no keys needed)
-   AWS_PROFILE=default
-   AWS_REGION=us-west-2
+2. **Set up virtual environment**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-**For External Users:**
-```env
-AWS_ACCESS_KEY_ID=your_aws_access_key_here
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
-AWS_SESSION_TOKEN=your_aws_session_token_here  # For temporary credentials
-AWS_REGION=us-west-2
-```
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-#### Confluence Integration (Optional)
-```env
-CONFLUENCE_URL=https://your-company.atlassian.net
-CONFLUENCE_USERNAME=your-email@company.com
-CONFLUENCE_API_TOKEN=your_confluence_api_token_here
-CONFLUENCE_SPACE_KEY=YOUR_SPACE_KEY
-```
+4. **Configure environment**
+   ```bash
+   cp env.example .env
+   # Edit .env with your credentials
+   ```
 
-### 3. Run the Analyzer
-
-```bash
-python dashboard_analyzer.py
-```
+5. **Run the analyzer**
+   ```bash
+   python dashboard_analyzer.py
+   ```
 
 ## 🎯 How It Works
 
@@ -96,12 +50,14 @@ python dashboard_analyzer.py
 
 ## 📋 Supported Formats
 
-- ✅ PNG (recommended)
-- ✅ JPG/JPEG
-- ✅ GIF
-- ✅ WebP
-- ✅ BMP
-- ✅ Maximum file size: 10MB
+### Supported Formats
+
+- PNG (recommended)
+- JPG/JPEG
+- GIF
+- WebP
+- BMP
+- Maximum file size: 10MB
 
 ## 📊 Analysis Includes
 
@@ -116,51 +72,46 @@ python dashboard_analyzer.py
 - Time ranges and filters
 - Data sources identification
 
-### 💡 Business Insights
-- Domain analysis (sales, finance, ops, etc.)
-- Trends, patterns, and anomalies
-- Performance indicators
-- Key business metrics
+### Business Insights
 
-### 🔧 Interactive Features
-- Filter controls and parameters
-- Navigation and drill-down capabilities
-- Cross-filtering relationships
+- Dashboard purpose and business objectives
+- Key performance indicators (KPIs) identification
+- Business context and stakeholder value
+- Actionable recommendations for improvement
 
-### 🎯 Business Value
-- Target audience identification
-- Decision-making scenarios
-- Use case recommendations
+### Interactive Features
 
-### ⚠️ Technical Assessment
-- Data quality indicators
-- Performance considerations
-- Error detection
-- Mobile responsiveness
+- Filter and control analysis
+- Drill-down capabilities
+- Navigation patterns
+- User interaction workflows
 
-### 🚀 Improvement Recommendations
-- Missing visualizations
-- Layout enhancements
-- Additional interactivity
-- Accessibility improvements
+### Technical Assessment
 
-## 📁 Project Structure
+- Performance metrics evaluation
+- Data source identification
+- Refresh schedule analysis
+- Technical improvement suggestions
+
+### Improvement Recommendations
+
+- Dashboard optimization suggestions
+- User experience enhancements
+- Performance improvements
+- Best practices recommendations
+
+## Project Structure
 
 ```
 confluence-how-to-bot/
-├── dashboard_analyzer.py           # Main application
-├── utils/                         # Supporting utilities
-│   ├── __init__.py
-│   ├── config.py                  # Configuration management
-│   └── confluence_uploader.py     # Confluence API integration
-├── outputs/                       # Generated analysis files
-│   ├── .gitkeep                   # Keeps directory in git
-│   ├── dashboard_analysis_*.md    # AI analysis reports
-│   └── dashboard_howto_*.md       # Generated documentation
-├── README.md                      # Complete documentation (this file)
-├── requirements.txt               # Python dependencies
-├── env.example                    # Environment template
-└── venv/                         # Virtual environment
+├── dashboard_analyzer.py      # Main application
+├── utils/
+│   ├── config.py             # Configuration management
+│   ├── image_utils.py        # Image processing utilities
+│   └── confluence_uploader.py # Confluence integration
+├── outputs/                  # Generated documentation
+├── requirements.txt          # Python dependencies
+└── .env                     # Environment configuration
 ```
 
 ## 🔗 Confluence Setup Guide
@@ -218,56 +169,64 @@ python dashboard_analyzer.py
 
 ### Common Issues
 
-#### ❌ **Expired AWS Credentials**
-- **Solution**: Refresh your Okta AWS credentials
-- Update the `.env` file with new `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
+#### **Expired AWS Credentials**
+```
+Error: InvalidClientTokenId
+Solution: Refresh your AWS credentials in Okta
+```
 
-#### ❌ **Image Not Found**
-- **Solution**: Check the file path
-- Use absolute paths
-- Remove quotes around paths
-- Select from the numbered recent files list
+#### **Image Not Found**
+```
+Error: NoSuchKey or file not found
+Solution: Verify the image file path exists
+```
 
-#### ❌ **Unsupported Format**
-- **Solution**: Convert to PNG, JPG, or other supported formats
-- Check file extension
+#### **Unsupported Format**
+```
+Error: Unsupported format
+Solution: Use PNG, JPG, JPEG, GIF, WebP, or BMP
+```
 
-#### ❌ **File Too Large**
-- **Solution**: Compress image (max 10MB)
-- Reduce resolution if needed
+#### **File Too Large**
+```
+Error: File size exceeds 10MB
+Solution: Compress or resize the image
+```
 
-#### ❌ **"Failed to connect to Confluence"**
-- Check your CONFLUENCE_URL (no trailing slash)
-- Verify your username and API token
-- Test manually: `curl -u email:token https://yoursite.atlassian.net/rest/api/user/current`
+#### **"Failed to connect to Confluence"**
+```
+Error: Connection timeout or authentication failure
+Solution: Check your Confluence URL and API token
+```
 
-#### ❌ **"Space not found"**
-- Verify CONFLUENCE_SPACE_KEY is correct
-- Check space permissions (you need create/edit access)
-- Try browsing to: `https://yoursite.atlassian.net/spaces/YOURSPACEKEY`
+#### **"Space not found"**
+```
+Error: Confluence space key is invalid
+Solution: Verify the space key in your .env file
+```
 
-#### ❌ **"Permission denied"**
-- Your user needs space admin or page creation permissions
-- Contact your Confluence admin for access
+#### **"Permission denied"**
+```
+Error: Insufficient permissions
+Solution: Check your Confluence user permissions
+```
 
 ### Testing Your Setup
 
-```bash
-# Quick Confluence connection test
-python -c "
+Test your Confluence connection:
+```python
 from utils.confluence_uploader import ConfluenceUploader
 uploader = ConfluenceUploader()
-print('✅ Connected!' if uploader.test_connection() else '❌ Failed!')
-"
+print('Connected!' if uploader.test_connection() else 'Failed!')
 ```
 
-## 💡 Tips for Best Results
+## Tips for Best Results
 
-- **Capture full dashboard view** including titles and legends
-- **Ensure text is readable** at screenshot resolution
-- **Use PNG format** for best quality
-- **Include interactive elements** (filters, controls) in screenshot
-- **Take screenshots at full resolution** for detailed analysis
+- **Image Quality**: Use high-resolution screenshots (PNG recommended)
+- **Full Context**: Capture entire dashboard views, not just sections
+- **Text Readability**: Ensure all text and labels are clearly visible
+- **Multiple Views**: Include different dashboard perspectives for comprehensive analysis
+- **Recent Data**: Use current dashboard screenshots for up-to-date analysis
 
 ## 📈 Example Output
 
@@ -297,13 +256,12 @@ This dashboard tracks key sales metrics and KPIs for the sales organization...
 - **Dashboard Audits**: Technical assessment and improvement recommendations
 - **Knowledge Management**: Centralized dashboard documentation in Confluence
 
-## 🚀 Advanced Features
+## Advanced Features
 
-- **Smart Recent File Detection**: Automatically finds images in Desktop, Downloads, Pictures
-- **Interactive Selection**: Choose from numbered list or enter custom path
-- **Enhanced Error Handling**: Helpful error messages with solutions
-- **Rich Output**: Professional reports with emojis and structured sections
-- **Batch Processing**: Analyze multiple dashboards efficiently
+- **Multi-Image Analysis**: Analyze multiple dashboard views simultaneously
+- **Confluence Integration**: Direct publishing with proper formatting
+- **AWS SSO Integration**: Seamless authentication with Okta
+- **Professional Output**: Business-ready documentation generation
 
 ## 🔐 Security Best Practices
 

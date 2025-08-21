@@ -32,14 +32,17 @@ class ConfluenceUploader:
         # Validate configuration
         if not all([self.confluence_url, self.username, self.api_token, self.space_key]):
             missing = []
-            if not self.confluence_url: missing.append('CONFLUENCE_URL')
-            if not self.username: missing.append('CONFLUENCE_USERNAME')
-            if not self.api_token: missing.append('CONFLUENCE_API_TOKEN')
-            if not self.space_key: missing.append('CONFLUENCE_SPACE_KEY')
+            if not self.confluence_url:
+                missing.append("CONFLUENCE_URL")
+            if not self.username:
+                missing.append("CONFLUENCE_USERNAME")
+            if not self.api_token:
+                missing.append("CONFLUENCE_API_TOKEN")
+            if not self.space_key:
+                missing.append("CONFLUENCE_SPACE_KEY")
             
-            logger.warning(f"Confluence configuration incomplete. Missing: {', '.join(missing)}")
-            print(f"⚠️ Confluence not configured. Missing: {', '.join(missing)}")
-            print("💡 Check your .env file and add the required Confluence settings.")
+            print(f"Confluence not configured. Missing: {', '.join(missing)}")
+            print("Check your .env file and add the required Confluence settings.")
         
         # Setup authentication
         auth_string = f"{self.username}:{self.api_token}"
@@ -78,14 +81,14 @@ class ConfluenceUploader:
             
             if response.status_code == 200:
                 user_info = response.json()
-                logger.info(f"✅ Confluence connection successful. User: {user_info.get('displayName', 'Unknown')}")
+                logger.info(f"Confluence connection successful. User: {user_info.get('displayName', 'Unknown')}")
                 return True
             else:
-                logger.error(f"❌ Confluence connection failed: {response.status_code} - {response.text}")
+                logger.error(f"Confluence connection failed: {response.status_code} - {response.text}")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ Confluence connection error: {e}")
+            logger.error(f"Confluence connection error: {e}")
             return False
     
     def find_page_by_title(self, title: str) -> Optional[Dict[str, Any]]:
@@ -112,7 +115,7 @@ class ConfluenceUploader:
             return None
             
         except Exception as e:
-            logger.error(f"❌ Error finding page: {e}")
+            logger.error(f"Error finding page: {e}")
             return None
     
     def convert_markdown_to_confluence(self, markdown_content: str) -> str:
@@ -245,14 +248,14 @@ class ConfluenceUploader:
             if response.status_code == 200:
                 result = response.json()
                 page_url = urljoin(self.confluence_url, result['_links']['webui'])
-                logger.info(f"✅ Page {method.lower()}ed successfully: {title}")
+                logger.info(f"Page {method.lower()}ed successfully: {title}")
                 return page_url
             else:
-                logger.error(f"❌ Failed to {method.lower()} page: {response.status_code} - {response.text}")
+                logger.error(f"Failed to {method.lower()} page: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ Error {method.lower()}ing page: {e}")
+            logger.error(f"Error {method.lower()}ing page: {e}")
             return None
 
     def create_page(self, title: str, content: str) -> Optional[str]:
@@ -317,17 +320,17 @@ class ConfluenceUploader:
     def upload_content(self, title: str, content: str, content_type: str = 'markdown', images: list = None) -> Optional[str]:
         """Upload or update content to Confluence with embedded images."""
         if not all([self.confluence_url, self.username, self.api_token, self.space_key]):
-            print("❌ Confluence not properly configured")
+            print("Confluence not properly configured")
             return None
         
         try:
             # Test connection first
-            print("🔗 Testing Confluence connection...")
+            print("Testing Confluence connection...")
             if not self.test_connection():
-                print("❌ Failed to connect to Confluence")
+                print("Failed to connect to Confluence")
                 return None
             
-            print(f"📝 Processing content: {title}")
+            print(f"Processing content: {title}")
             
             # For new pages, we need to create the page first to get an ID for image uploads
             # Check if page already exists
@@ -335,9 +338,9 @@ class ConfluenceUploader:
             
             if existing_page:
                 page_id = existing_page['id']
-                print(f"📄 Updating existing page: {title}")
+                print(f"Updating existing page: {title}")
             else:
-                print(f"✨ Creating new page: {title}")
+                print(f"Creating new page: {title}")
                 # Create page with initial content
                 page_url = self.create_page(title, content)
                 if page_url and '/pages/' in page_url:
@@ -348,7 +351,7 @@ class ConfluenceUploader:
             # Upload images and get their attachment URLs
             image_embeds = []
             if images and page_id:
-                print(f"📸 Uploading {len(images)} images...")
+                print(f"Uploading {len(images)} images...")
                 for i, image_path in enumerate(images, 1):
                     # Clean and expand the image path
                     cleaned_path = os.path.expanduser(image_path.strip().strip('"').strip("'"))
@@ -357,7 +360,7 @@ class ConfluenceUploader:
                         image_url = self.upload_image(cleaned_path, page_id)
                         if image_url:
                             filename = os.path.basename(cleaned_path)
-                            print(f"✅ Uploaded: {filename}")
+                            print(f"Uploaded: {filename}")
                             # Create Confluence image macro for embedding
                             image_embed = f'<ac:image ac:width="800"><ri:attachment ri:filename="{filename}" /></ac:image>'
                             image_embeds.append({
@@ -366,14 +369,14 @@ class ConfluenceUploader:
                                 'filename': filename
                             })
                         else:
-                            print(f"❌ Failed to upload: {os.path.basename(cleaned_path)}")
+                            print(f"Failed to upload: {os.path.basename(cleaned_path)}")
                     else:
-                        print(f"❌ Image not found: {cleaned_path}")
+                        print(f"Image not found: {cleaned_path}")
                         # Try to give more helpful information
                         if os.path.exists(image_path):
-                            print(f"💡 Note: Original path exists: {image_path}")
+                            print(f"Note: Original path exists: {image_path}")
                         else:
-                            print(f"💡 Original path also doesn't exist: {image_path}")
+                            print(f"Note: Original path also doesn't exist: {image_path}")
             
             # Embed images into content if we have them
             if image_embeds:
@@ -403,8 +406,8 @@ class ConfluenceUploader:
             return page_url
             
         except Exception as e:
-            logger.error(f"❌ Upload failed: {e}")
-            print(f"❌ Upload failed: {e}")
+            logger.error(f"Upload failed: {e}")
+            print(f"Upload failed: {e}")
             return None
     
     def _embed_images_in_content(self, content: str, image_embeds: list) -> str:
@@ -447,7 +450,7 @@ class ConfluenceUploader:
 def get_confluence_setup_guide() -> str:
     """Return setup instructions for Confluence integration."""
     return """
-## 🔧 Confluence API Setup Guide
+## Confluence API Setup Guide
 
 ### 1. Get Your Confluence Information
 - **Confluence URL**: Your Atlassian site (e.g., https://yourcompany.atlassian.net)

@@ -112,7 +112,7 @@ CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
 OUTPUT FORMAT (copy this structure exactly - NO BLANK LINES between headers and content):
 
 <h2>Objective</h2>
-[Explain the dashboard's purpose in 2-3 sentences. What business problems does it solve and how does it help GoDaddy stakeholders make informed decisions{multi_note}]
+[Explain the dashboard's purpose in 3-5 sentences. What business problems does it solve and how does it help GoDaddy stakeholders make informed decisions{multi_note}]
 
 <h2>Dashboard Views</h2>
 Based on the dashboard images, I can identify the following views:
@@ -157,17 +157,17 @@ def analyze_dashboard_image(image_path: str) -> Optional[str]:
 def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
     """Generate dashboard documentation from one or more image analysis.
     
-    This function consolidates the previous separate single and multi-image handlers
-    into a unified approach that efficiently handles both cases.
+    This function uses unified processing for both single and multi-image cases
+    to ensure consistent protocols and outcomes.
     """
     try:
-        is_multi_image = len(image_paths) > 1
-        print(f"🤖 Generating {'comprehensive' if is_multi_image else ''} documentation from {len(image_paths)} dashboard image{'s' if is_multi_image else ''}...")
+        # Unified processing - no difference between single and multi-image
+        print(f"Generating comprehensive documentation from {len(image_paths)} dashboard image{'s' if len(image_paths) > 1 else ''}...")
         
         # Prepare all images for analysis using centralized utilities
         # Apply optimization settings if enabled
         if ENABLE_IMAGE_OPTIMIZATION:
-            print(f"🔧 Image optimization enabled (Quality: {OPTIMIZATION_QUALITY}%, Max: {OPTIMIZATION_MAX_WIDTH}x{OPTIMIZATION_MAX_HEIGHT})")
+            print(f"Image optimization enabled (Quality: {OPTIMIZATION_QUALITY}%, Max: {OPTIMIZATION_MAX_WIDTH}x{OPTIMIZATION_MAX_HEIGHT})")
             # Update ImageProcessor settings with our configuration
             ImageProcessor.JPEG_QUALITY = OPTIMIZATION_QUALITY
             ImageProcessor.MAX_WIDTH = OPTIMIZATION_MAX_WIDTH
@@ -176,13 +176,13 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
         image_data_list, valid_image_paths = ImageProcessor.prepare_multiple_images_for_bedrock(image_paths)
         
         if not image_data_list:
-            print("❌ No valid images to process")
+            print("No valid images to process")
             return None
             
-        print(f"✅ Successfully processed {len(image_data_list)} images for analysis")
+        print(f"Successfully processed {len(image_data_list)} images for analysis")
         
-        # Use unified prompt for documentation generation
-        unified_prompt = create_unified_prompt(is_multi_image=is_multi_image)
+        # Use unified prompt for documentation generation - same for all
+        unified_prompt = create_unified_prompt(len(image_paths) > 1)
         
         # Initialize Bedrock client
         print("Connecting to AWS Bedrock AI...")
@@ -194,16 +194,15 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
             "text": unified_prompt
         }]
         
-        print(f"Sending {len(image_data_list)} image{'s' if is_multi_image else ''} to Bedrock...")
+        print(f"Sending {len(image_data_list)} image{'s' if len(image_paths) > 1 else ''} to Bedrock...")
         
         messages = [{
             "role": "user",
             "content": content_list
         }]
         
-        # Adjust max_tokens based on number of images and analysis depth
-        # Increased for more comprehensive analysis
-        max_tokens = 8000 if is_multi_image else 6000
+        # Unified max_tokens - same for all (removed artificial difference)
+        max_tokens = 8000
         
         body = {
             "anthropic_version": "bedrock-2023-05-31",
@@ -212,14 +211,12 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
             "temperature": 0.1
         }
         
-        # Calculate approximate payload size for multi-image
-        if is_multi_image:
-            body_str = json.dumps(body)
-            payload_size_mb = len(body_str.encode('utf-8')) / (1024 * 1024)
-            print(f"Payload size: {payload_size_mb:.2f} MB")
-            
-            if payload_size_mb > 20:
-                print("⚠️ Payload might be too large for Bedrock")
+        # Check payload size and warn if too large
+        payload_size = len(str(body))
+        if payload_size > 200000:  # 200KB limit
+            print("Warning: Payload might be too large for Bedrock")
+            print(f"Current size: {payload_size / 1024:.1f}KB")
+            print("Consider using fewer images or smaller files")
         
         print("Calling Bedrock API...")
         # Call Bedrock with vision model
@@ -238,9 +235,9 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
         documentation_text = documentation_text.replace('<h2>Objective</h2>\n ', '<h2>Objective</h2>\n')
         documentation_text = documentation_text.replace('<h3>', '\n<h3>')  # Ensure h3 tags have proper spacing
         
-        # Generate filename based on image count
+        # Unified filename generation - consistent pattern for all
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        if is_multi_image:
+        if len(image_paths) > 1:
             doc_filename = f"outputs/multi_dashboard_howto_{timestamp}.md"
         else:
             image_basename = os.path.splitext(os.path.basename(valid_image_paths[0]))[0]
@@ -253,12 +250,12 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
         # Copy source images to outputs/images for embedding using centralized utilities
         copied_files = ImageProcessor.copy_images_to_outputs(valid_image_paths)
         for dest_path in copied_files:
-            print(f"✅ Copied image: {os.path.basename(dest_path)}")
+            print(f"Copied image: {os.path.basename(dest_path)}")
         
-        # Create Markdown documentation with center alignment for Confluence
-        markdown_filename = doc_filename  # Keep .md extension
+        # Create Markdown documentation with unified format
+        markdown_filename = doc_filename
         with open(markdown_filename, 'w', encoding='utf-8') as f:
-            # Write centered title without metadata table
+            # Unified structure - same for all
             f.write('<div style="text-align: center; max-width: 800px; margin: 0 auto;">\n\n')
             f.write("<h1>Dashboard User Guide</h1>\n")
             
@@ -266,11 +263,10 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
             f.write(documentation_text)
             f.write("\n\n")
             
-            # Add screenshots section at the end
+            # Unified screenshots section - same format for all
             f.write("<h2>Dashboard Screenshots</h2>\n\n")
             f.write(f"**Screenshot Analysis Date:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
-            if is_multi_image:
-                f.write(f"**Screenshots Analyzed:** {len(valid_image_paths)} images\n\n")
+            f.write(f"**Screenshots Analyzed:** {len(valid_image_paths)} image{'s' if len(valid_image_paths) > 1 else ''}\n\n")
             f.write(f"*Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis*\n\n")
             
             # Clean footer
@@ -279,35 +275,9 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
             f.write("*For questions or updates, please contact the BI team.*\n\n")
             f.write("</div>")
         
-        logger.info(f"✅ {'Multi-' if is_multi_image else ''}Dashboard documentation generated: {markdown_filename}")
-        print(f"💾 Markdown documentation saved to: {markdown_filename}")
+        logger.info(f"Dashboard documentation generated: {markdown_filename}")
+        print(f"Markdown documentation saved to: {markdown_filename}")
         print(f"Ready for Confluence import!")
-        
-        # Show a preview of key insights for single images
-        if not is_multi_image:
-            print("\n🔍 Quick Preview:")
-            print("="*50)
-            lines = documentation_text.split('\n')
-            preview_lines = []
-            section_count = 0
-            
-            for line in lines:
-                if line.strip().startswith('##') and section_count < 3:  # Show first 3 sections
-                    section_count += 1
-                    preview_lines.append(f"  {line.strip()}")
-                elif line.strip() and section_count <= 3 and len(preview_lines) < 15:
-                    if line.strip().startswith('**') or line.strip().startswith('1.') or line.strip().startswith('-'):
-                        preview_lines.append(f"    {line.strip()}")
-                    elif not line.strip().startswith('#'):
-                        preview_lines.append(f"  {line.strip()}")
-            
-            for line in preview_lines[:12]:  # Limit preview length
-                print(line)
-            
-            if len(preview_lines) > 12:
-                print("  ...")
-        
-        print(f"\n📖 View complete analysis: {markdown_filename}")
         
         return markdown_filename
         
@@ -316,18 +286,18 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
         print(f"Analysis failed: {e}")
         
         # Provide helpful error context
-        if "ExpiredToken" in str(e):
-            print("💡 Your AWS credentials have expired. Please refresh them in Okta.")
-        elif "Access" in str(e) or "Permission" in str(e):
-            print("💡 Check your AWS credentials and Bedrock permissions.")
-        elif "not found" in str(e).lower():
-            print("💡 Double-check the image file path.")
-        elif "ValidationException" in str(e) or "PayloadTooLargeException" in str(e):
-            print("💡 Multiple images may be too large. Try with fewer images or smaller files.")
-        elif "Credentials" in str(e) or "Token" in str(e):
-            print("💡 Credential issue detected. Please refresh your AWS credentials.")
+        if "InvalidClientTokenId" in str(e):
+            print("Your AWS credentials have expired. Please refresh them in Okta.")
+        elif "AccessDenied" in str(e):
+            print("Check your AWS credentials and Bedrock permissions.")
+        elif "NoSuchKey" in str(e):
+            print("Double-check the image file path.")
+        elif "PayloadTooLarge" in str(e):
+            print("Multiple images may be too large. Try with fewer images or smaller files.")
+        elif "ExpiredTokenException" in str(e):
+            print("Credential issue detected. Please refresh your AWS credentials.")
         else:
-            print("💡 Please verify your AWS credentials and image files.")
+            print("Please verify your AWS credentials and image files.")
         
         return None
 
@@ -431,12 +401,12 @@ def upload_dashboard_image():
     print("=" * 50)
     print("Select one or multiple QuickSight dashboard screenshots for AI analysis")
     print()
-    print("✅ Supported formats: PNG, JPG, JPEG, GIF, WebP, BMP")
-    print("✅ Maximum file size: 10MB per image")
-    print("✅ AI-powered business insights and recommendations")
-    print("✅ Detailed visualization breakdown and technical assessment")
+    print("Supported formats: PNG, JPG, JPEG, GIF, WebP, BMP")
+    print("Maximum file size: 10MB per image")
+    print("AI-powered business insights and recommendations")
+    print("Detailed visualization breakdown and technical assessment")
     print()
-    print("💡 Tips for best results:")
+    print("Tips for best results:")
     print("   - Capture the full dashboard view")
     print("   - Include chart titles and legends")
     print("   - Ensure text is readable")
@@ -460,7 +430,7 @@ def upload_dashboard_image():
             print(f"Currently selected: {len(selected_images)} image(s)")
             if selected_images:
                 for img in selected_images:
-                    print(f"   ✅ {os.path.basename(img)}")
+                    print(f"   - {os.path.basename(img)}")
                 print()
             
             choice = input("Choose image number, enter a file path, ff to finish, or qq to quit: ").strip()
@@ -470,24 +440,24 @@ def upload_dashboard_image():
                 return
 
             if not choice:
-                print("❌ Please provide a selection")
+                print("Please provide a selection")
                 continue
             
             if choice.lower() == 'ff':
                 if len(selected_images) >= 1:
                     break
                 else:
-                    print("❌ Please select at least 1 image")
+                    print("Please select at least 1 image")
                     continue
 
             if choice == '0':
-                custom_path = input("📁 Enter file path: ").strip()
+                custom_path = input("Enter file path: ").strip()
                 custom_path = custom_path.strip().strip('"').strip("'")
                 if custom_path and os.path.exists(custom_path):
                     selected_images.append(custom_path)
-                    print(f"✅ Added: {os.path.basename(custom_path)}")
+                    print(f"Added: {os.path.basename(custom_path)}")
                 else:
-                    print(f"❌ File not found: {custom_path}")
+                    print(f"File not found: {custom_path}")
                 continue
 
             # Handle numeric choice from recent list
@@ -497,28 +467,28 @@ def upload_dashboard_image():
                     img_path = recent_images[choice_num - 1]
                     if img_path not in selected_images:
                         selected_images.append(img_path)
-                        print(f"✅ Added: {os.path.basename(img_path)}")
+                        print(f"Added: {os.path.basename(img_path)}")
                     else:
-                        print("⚠️ Image already selected")
+                        print("Image already selected")
                 else:
-                    print(f"❌ Invalid choice. Enter 1-{len(recent_images)}, 0, ff, or a file path")
+                    print(f"Invalid choice. Enter 1-{len(recent_images)}, 0, ff, or a file path")
             else:
                 # Try as direct file path
                 path_candidate = choice.strip().strip('"').strip("'")
                 if os.path.exists(path_candidate):
                     selected_images.append(path_candidate)
-                    print(f"✅ Added: {os.path.basename(path_candidate)}")
+                    print(f"Added: {os.path.basename(path_candidate)}")
                 else:
-                    print(f"❌ File not found: {path_candidate}")
+                    print(f"File not found: {path_candidate}")
     else:
-        print("📁 No recent images found. Please enter file paths.")
+        print("No recent images found. Please enter file paths.")
         while True:
             if len(selected_images) >= 1:
                 done = input(f"Currently selected: {len(selected_images)} image(s). Add more? (y/n): ").strip().lower()
                 if done == 'n':
                     break
             
-            img_path = input("📁 Enter image file path (or 'ff' to finish, 'qq' to quit): ").strip()
+            img_path = input("Enter image file path (or 'ff' to finish, 'qq' to quit): ").strip()
             if img_path.lower() in ['qq', 'q', 'exit']:
                 print("Goodbye!")
                 return
@@ -526,67 +496,27 @@ def upload_dashboard_image():
                 if len(selected_images) >= 1:
                     break
                 else:
-                    print("❌ Please select at least 1 image")
+                    print("Please select at least 1 image")
                     continue
             
             img_path = img_path.strip().strip('"').strip("'")
             if os.path.exists(img_path):
                 selected_images.append(img_path)
-                print(f"✅ Added: {os.path.basename(img_path)}")
+                print(f"Added: {os.path.basename(img_path)}")
             else:
-                print(f"❌ File not found: {img_path}")
+                print(f"File not found: {img_path}")
     
     if len(selected_images) == 0:
-        print("❌ No images selected")
+        print("No images selected")
         return
     
-    if len(selected_images) == 1:
-        # Single image flow
-        image_path = selected_images[0]
-        result = analyze_dashboard_images([image_path])
+    # Unified workflow for both single and multi-image processing
+    result = analyze_dashboard_images(selected_images)
 
-        if result:
-            print(f"\nAnalysis Complete!")
-            print(f"Full report saved to: {result}")
-        print()
-        
-        print("Additional Options:")
-        print("1. Generate how-to documentation")
-        print("2. Generate how-to + publish to Confluence")
-        print("3. Finish")
-
-        doc_choice = input("Choose option (1-3): ").strip()
-
-        if doc_choice == '2':
-            custom_title = input("Enter custom title (or press Enter for auto-generated): ").strip()
-            title = custom_title if custom_title else None
-            success = publish_to_confluence(result, title, [image_path])
-            if success:
-                print("🚀 Complete workflow finished successfully!")
-            else:
-                print("⚠️ Documentation created but Confluence publishing failed")
-        elif doc_choice == '1':
-            print("✅ Documentation saved locally")
-        else:
-            print("Skipping documentation")
-
-        another = input("Analyze more images? (y/n): ").strip().lower()
-        if another in ['y', 'yes']:
-            print()
-            upload_dashboard_image()
-        else:
-            print("Thank you for using QuickSight Dashboard Image Analyzer!")
-        
-        if not result:
-            print("❌ Analysis failed for the selected image")
-        return
-
-    # Multi-image flow - generate consolidated documentation
-    doc_file = analyze_dashboard_images(selected_images)
-
-    if doc_file:
-        print(f"\nMulti-image Analysis Complete!")
-        print(f"Successfully analyzed {len(selected_images)} screenshots of the dashboard")
+    if result:
+        print(f"\nAnalysis Complete!")
+        print(f"Successfully analyzed {len(selected_images)} dashboard image{'s' if len(selected_images) > 1 else ''}")
+        print(f"Full report saved to: {result}")
         print()
 
         print("Documentation Options:")
@@ -597,18 +527,20 @@ def upload_dashboard_image():
         doc_choice = input("Choose option (1-3): ").strip()
         
         if doc_choice == '2':
-                print("\nPublishing to Confluence...")
-                custom_title = input("Enter custom title (or press Enter for auto-generated): ").strip()
-                title = custom_title if custom_title else None
-                success = publish_to_confluence(doc_file, title, selected_images)
-                if success:
-                    print("Successfully published to Confluence!")
-                else:
-                    print("Failed to publish to Confluence")
+            print("Publishing to Confluence...")
+            custom_title = input("Enter custom title (or press Enter for auto-generated): ").strip()
+            title = custom_title if custom_title else None
+            success = publish_to_confluence(result, title, selected_images)
+            if success:
+                print("Complete workflow finished successfully!")
+            else:
+                print("Documentation created but Confluence publishing failed")
         elif doc_choice == '1':
             print("Documentation saved locally")
+        else:
+            print("Skipping documentation")
 
-        print(f"\nMulti-image analysis workflow complete!")
+        print(f"\nAnalysis workflow complete!")
         another = input("Analyze more images? (y/n): ").strip().lower()
         if another in ['y', 'yes']:
             print()
@@ -616,7 +548,7 @@ def upload_dashboard_image():
         else:
             print("Thank you for using QuickSight Dashboard Image Analyzer!")
     else:
-        print("Multi-image documentation generation failed")
+        print("Documentation generation failed")
 
 
 
