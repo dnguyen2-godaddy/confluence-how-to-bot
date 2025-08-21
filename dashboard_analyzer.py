@@ -87,13 +87,14 @@ ANALYSIS REQUIREMENTS:
 - Note specific control names, field names, and options visible in the interface
 - Identify clickable elements, drill-down capabilities, and navigation features
 - Report ONLY what is clearly visible in the screenshots - do not make assumptions
+- DYNAMICALLY determine the number of views/sections based on what you actually see in the images
 
 CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
 - MANDATORY: Use ONLY the exact structure provided below - NO other sections allowed
 - FORBIDDEN: Do NOT create sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations", "Interactive Features", "Usage Guidelines"
-- REQUIRED SECTIONS ONLY: Objective, New Enhanced View, New Additions, Detailed Overview (numbered 1-5), Dashboard Controls, How tos
-- Use <h2> for main sections (Objective, New Enhanced View, etc.)
-- Use <h3> for numbered detailed views (1., 2., 3., 4., 5.)
+- REQUIRED SECTIONS ONLY: Objective, Dashboard Views, New Additions, Detailed Overview, Dashboard Controls, How tos
+- Use <h2> for main sections (Objective, Dashboard Views, etc.)
+- Use <h3> for numbered detailed views - DYNAMIC COUNTING based on actual content (1., 2., 3., etc.)
 - Use <strong>bold text</strong> for subsection names: <strong>Metrics Reported</strong>, <strong>Data Source</strong>, <strong>View Specific Drill Down Control</strong>
 - CRITICAL: Follow the template structure word-for-word - do not add extra sections
 - Write in professional business language for GoDaddy stakeholders
@@ -103,80 +104,45 @@ CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
 - START with "<h2>Objective</h2>" immediately - no other content before it
 - NO EXTRA LINE BREAKS: Content must follow immediately after each header tag
 - CRITICAL: After <h2>Objective</h2> the next line must be the explanation text with NO blank line in between
-- INCLUDE ALL sections in the exact order: Objective → New Enhanced View → New Additions → Detailed Overview → Dashboard Controls → How tos
+- INCLUDE ALL sections in the exact order: Objective → Dashboard Views → New Additions → Detailed Overview → Dashboard Controls → How tos
 - FORBIDDEN: Do NOT create any sections not shown in the template
 - FORBIDDEN: Do NOT use sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations"
-- MANDATORY: Use the 5 numbered detailed views (<h3>1., <h3>2., <h3>3., <h3>4., <h3>5.)
+- DYNAMIC VIEW COUNTING: Create the exact number of <h3> sections that match what you see in the images (could be 1, 3, 7, etc.)
 - NO introductory text, explanations, or template deviations allowed
 
 OUTPUT FORMAT (copy this structure exactly - NO BLANK LINES between headers and content):
 
 <h2>Objective</h2>
 [Explain the dashboard's purpose in 2-3 sentences. What business problems does it solve and how does it help GoDaddy stakeholders make informed decisions{multi_note}]
-<h2>New Enhanced [Dashboard Name] View</h2>
-The <strong>[Dashboard Name]</strong> in QuickSight has the following views:
-1. [View 1 Name]
-2. [View 2 Name] 
-3. [View 3 Name]
-4. [View 4 Name]
-5. [View 5 Name]
-For <strong>[Dashboard Name]</strong> in QuickSight, you can also navigate to [X] other additional views for additional insights:
-1. [Additional View 1]
-2. [Additional View 2]
-All these views are discussed in detail below.
+
+<h2>Dashboard Views</h2>
+Based on the dashboard images, I can identify the following views:
+[DYNAMIC LIST - Create the exact number of views you see in the images, numbered appropriately]
+
 <h2>New Additions, Features and Changes</h2>
-Unlike the previous version, the new enhanced version of [Dashboard Name] in QuickSight has several additional metrics and features:
-1. <strong>Faster Loading:</strong> [Description of performance improvements]
-2. <strong>Consolidated Dashboard View:</strong> [Description of view consolidation]
-3. <strong>Enhanced [Feature] Diagnostics:</strong> [Description of diagnostic improvements]
-4. <strong>Future Period Pacing:</strong> [Description of pacing features]
-5. <strong>Prior [Metric] Tracking:</strong> [Description of tracking capabilities]
-6. <strong>[Metric] ML Momentum View:</strong> [Description of ML features]
-7. <strong>Controls:</strong> [Description of control improvements]
+[Describe any new features, improvements, or changes visible in the dashboard images. Focus on what you can actually see, not assumptions]
+
 <h2>Detailed Overview of Each View</h2>
-<h3>1. [View 1 Name]</h3>
-[Description of what this view shows and its business purpose]
+[DYNAMIC VIEW SECTIONS - Create exactly the number of <h3> sections that match the views you identified above. Each view should have:]
+
+<h3>1. [View Name - Based on what you see]</h3>
+[Description of what this view shows and its business purpose based on the image content]
 <strong>Metrics Reported</strong>
-1. [Metric 1]: [Description of what it measures]
-2. [Metric 2]: [Description of what it measures]
-3. [Metric 3]: [Description of what it measures]
+[DYNAMIC LIST - List the actual metrics you can see in this view, numbered appropriately]
 <strong>View Specific Drill Down Control</strong>
-[Description of available drill-down options and controls]
+[Description of available drill-down options and controls visible in this view]
 <strong>Data Source</strong>
-[Information about data sources and refresh schedules]
-<h3>2. [View 2 Name]</h3>
-[Description of what this view shows and its business purpose]
-<strong>Metrics Reported</strong>
-1. [Metric 1]: [Description of what it measures]
-2. [Metric 2]: [Description of what it measures]
-<strong>Data Source</strong>
-[Information about data sources and refresh schedules]
-<h3>3. [View 3 Name]</h3>
-[Description of what this view shows and its business purpose]
-<strong>Metrics Reported</strong>
-1. [Metric 1]: [Description of what it measures]
-2. [Metric 2]: [Description of what it measures]
-<strong>Data Source</strong>
-[Information about data sources and refresh schedules]
-<h3>4. [View 4 Name]</h3>
-[Description of what this view shows and its business purpose]
-<strong>Metrics Reported</strong>
-1. [Metric 1]: [Description of what it measures]
-2. [Metric 2]: [Description of what it measures]
-<strong>Data Source</strong>
-[Information about data sources and refresh schedules]
-<h3>5. [View 5 Name]</h3>
-[Description of what this view shows and its business purpose]
-<strong>Metrics Reported</strong>
-1. [Metric 1]: [Description of what it measures]
-2. [Metric 2]: [Description of what it measures]
-<strong>Data Source</strong>
-[Information about data sources and refresh schedules]
+[Information about data sources and refresh schedules if visible]
+
+[CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially]
+
 <h2>Dashboard Controls</h2>
 [List and describe the specific filters, dropdowns, date selectors, and other controls visible in the dashboard images. Include their exact names and locations as shown in the screenshots.]
+
 <h2>How tos:</h2>
 [Based on what you see in the dashboard images, provide specific step-by-step instructions for using THIS dashboard. Include actual filter names, button locations, and specific features visible in the screenshots. Make this practical and actionable for users of this specific dashboard.]
-[Include all images used, in-ligned with text and document.]"""
+
+[Include all images used, in-lined with text and document.]"""
 
 
 def validate_image_file(image_path: str) -> tuple[bool, str]:
