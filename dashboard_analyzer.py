@@ -312,8 +312,8 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
         return markdown_filename
         
     except Exception as e:
-        logger.error(f"❌ Failed to analyze image{'s' if len(image_paths) > 1 else ''}: {e}")
-        print(f"❌ Analysis failed: {e}")
+        logger.error(f"Failed to analyze image{'s' if len(image_paths) > 1 else ''}: {e}")
+        print(f"Analysis failed: {e}")
         
         # Provide helpful error context
         if "ExpiredToken" in str(e):
@@ -370,21 +370,21 @@ def publish_to_confluence(doc_file: str, title: str = None, images: list = None)
         )
         
         if page_url:
-            print(f"✅ Successfully published to Confluence!")
+            print(f"Successfully published to Confluence!")
             print(f"Page URL: {page_url}")
-            logger.info(f"✅ Published to Confluence: {page_url}")
+            logger.info(f"Published to Confluence: {page_url}")
             return True
         else:
-            print("❌ Failed to publish to Confluence")
+            print("Failed to publish to Confluence")
             return False
             
     except ImportError:
-        print("❌ Confluence uploader not available")
-        print("💡 Install confluence requirements or check configuration")
+        print("Confluence uploader not available")
+        print("Install confluence requirements or check configuration")
         return False
     except Exception as e:
-        logger.error(f"❌ Confluence publishing failed: {e}")
-        print(f"❌ Confluence publishing failed: {e}")
+        logger.error(f"Confluence publishing failed: {e}")
+        print(f"Confluence publishing failed: {e}")
         return False
 
 
@@ -602,13 +602,13 @@ def upload_dashboard_image():
                 title = custom_title if custom_title else None
                 success = publish_to_confluence(doc_file, title, selected_images)
                 if success:
-                    print("✅ Successfully published to Confluence!")
+                    print("Successfully published to Confluence!")
                 else:
-                    print("❌ Failed to publish to Confluence")
+                    print("Failed to publish to Confluence")
         elif doc_choice == '1':
-            print("✅ Documentation saved locally")
+            print("Documentation saved locally")
 
-        print(f"\n🚀 Multi-image analysis workflow complete!")
+        print(f"\nMulti-image analysis workflow complete!")
         another = input("Analyze more images? (y/n): ").strip().lower()
         if another in ['y', 'yes']:
             print()
@@ -616,7 +616,7 @@ def upload_dashboard_image():
         else:
             print("Thank you for using QuickSight Dashboard Image Analyzer!")
     else:
-        print("❌ Multi-image documentation generation failed")
+        print("Multi-image documentation generation failed")
 
 
 
@@ -644,8 +644,8 @@ def main():
         print("\n\nGoodbye!")
     except Exception as e:
         logger.error(f"Application error: {e}")
-        print(f"\n❌ Application error: {e}")
-        print("💡 Please check your AWS credentials and try again.")
+        print(f"\n Application error: {e}")
+        print("Please check your AWS credentials and try again.")
     finally:
         logger.info("Application completed")
 
