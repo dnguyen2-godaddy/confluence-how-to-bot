@@ -543,10 +543,9 @@ def upload_dashboard_image():
                 if os.path.exists(path_candidate):
                     selected_images.append(path_candidate)
                     print(f"✅ Added: {os.path.basename(path_candidate)}")
-    else:
+                else:
                     print(f"❌ File not found: {path_candidate}")
-    
-    if not recent_images:
+    else:
         print("📁 No recent images found. Please enter file paths.")
         while True:
             if len(selected_images) >= 1:
