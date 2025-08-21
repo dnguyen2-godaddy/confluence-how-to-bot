@@ -36,29 +36,38 @@ logger = logging.getLogger(__name__)
 
 
 def get_bedrock_client():
-    """Get a configured Bedrock client using AWS credential chain."""
-    # Use AWS credential chain for authentication
-    # This supports: IAM roles, AWS SSO, CLI profiles, instance profiles, env vars
-    client_kwargs = {
-        'service_name': 'bedrock-agent-runtime',
-        'region_name': config.aws_region
-    }
+    """Get a configured Bedrock client using AWS SSO profile."""
+    # Use AWS SSO profile for authentication
+    # This will automatically handle Okta authentication flow
+    profile_name = 'gd-aws-usa-cpo-gdac-dev-private-poweruser'
     
-    # Only add explicit credentials if they're provided (for backward compatibility)
-    if config.aws_access_key_id and config.aws_secret_access_key:
-        client_kwargs.update({
-            'aws_access_key_id': config.aws_access_key_id,
-            'aws_secret_access_key': config.aws_secret_access_key,
-            'aws_session_token': getattr(config, 'aws_session_token', None)
-        })
-    
-    # If AWS profile is specified, use it
-    if hasattr(config, 'aws_profile') and config.aws_profile:
-        # Use session with profile
-        session = boto3.Session(profile_name=config.aws_profile)
-        return session.client('bedrock-agent-runtime', region_name=config.aws_region)
-    
-    return boto3.client(**client_kwargs)
+    try:
+        # Create session with the SSO profile
+        session = boto3.Session(profile_name=profile_name)
+        client = session.client('bedrock-agent-runtime', region_name=config.aws_region)
+        
+        logger.info(f"Using AWS SSO profile: {profile_name}")
+        return client
+        
+    except Exception as e:
+        logger.error(f"Failed to create Bedrock client with SSO profile {profile_name}: {e}")
+        logger.info("Falling back to credential chain method...")
+        
+        # Fallback to credential chain method
+        client_kwargs = {
+            'service_name': 'bedrock-agent-runtime',
+            'region_name': config.aws_region
+        }
+        
+        # Only add explicit credentials if they're provided (for backward compatibility)
+        if config.aws_access_key_id and config.aws_secret_access_key:
+            client_kwargs.update({
+                'aws_access_key_id': config.aws_access_key_id,
+                'aws_secret_access_key': config.aws_secret_access_key,
+                'aws_session_token': getattr(config, 'aws_session_token', None)
+            })
+        
+        return boto3.client(**client_kwargs)
 
 
 
