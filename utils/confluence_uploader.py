@@ -171,11 +171,12 @@ class ConfluenceUploader:
                 if inner_content.strip().startswith('<'):
                     # This is HTML content - preserve ALL HTML tags without modification
                     logger.info(f"Preserving HTML content: {inner_content[:200]}...")
-                    return f'<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n{inner_content}\n</div>'
+                    # Return the content without re-wrapping in another div
+                    return inner_content
                 else:
                     # Process plain text content
                     processed_content = self._process_inner_content(inner_content)
-                    return f'<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n{processed_content}\n</div>'
+                    return processed_content
         
         # Fallback to original processing for backward compatibility
         # Ensure proper paragraph structure
