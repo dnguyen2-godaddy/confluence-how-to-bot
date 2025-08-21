@@ -266,7 +266,6 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
             f.write("---\n\n")
             f.write(f"Screenshot Analysis Date: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
             f.write(f"Screenshots Analyzed: {len(valid_image_paths)} image{'s' if len(valid_image_paths) > 1 else ''}\n\n")
-            f.write(f"Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis\n\n")
             f.write("This documentation was automatically generated using AI analysis.\n")
             f.write("For questions or updates, please contact the BI team.\n\n")
             f.write("</div>")

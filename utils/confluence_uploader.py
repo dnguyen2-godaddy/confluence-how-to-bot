@@ -147,6 +147,9 @@ class ConfluenceUploader:
     
     def _post_process_html_for_confluence(self, html_content: str) -> str:
         """Post-process HTML to ensure Confluence compatibility."""
+        # Debug: Log what we're processing
+        logger.info(f"Processing HTML content: {html_content[:200]}...")
+        
         # Handle the new structure: centered container with left-aligned content
         if '<div style="max-width: 800px; margin: 0 auto; text-align: left;">' in html_content:
             # Extract the content from the centered container
@@ -157,11 +160,21 @@ class ConfluenceUploader:
                 # Get the content inside the div (skip the opening div tag)
                 inner_content = html_content[content_start + 58:content_end]  # Skip the opening div tag
                 
-                # Process the inner content for Confluence compatibility
-                processed_content = self._process_inner_content(inner_content)
-                
-                # Re-wrap in centered container for Confluence
-                return f'<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n{processed_content}\n</div>'
+                # For HTML content, preserve all tags exactly as they are
+                if inner_content.strip().startswith('<'):
+                    # This is HTML content - preserve ALL HTML tags without modification
+                    logger.info(f"Preserving HTML content: {inner_content[:200]}...")
+                    return f'<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n{inner_content}\n</div>'
+                else:
+                    # Process plain text content
+                    processed_content = self._process_inner_content(inner_content)
+                    return f'<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n{processed_content}\n</div>'
+        
+        # For any HTML content, ensure it's properly formatted for Confluence
+        if html_content.startswith('<'):
+            # This is HTML content - preserve all HTML tags exactly
+            logger.info(f"Preserving HTML content without modification: {html_content[:200]}...")
+            return html_content
         
         # Fallback to original processing for backward compatibility
         # Ensure proper paragraph structure
@@ -470,7 +483,9 @@ class ConfluenceUploader:
                 
                 insert_pos = insert_index + 3
                 for j, img_info in enumerate(image_embeds, 1):
-                    enhanced_lines.insert(insert_pos, f"**View {j}: {img_info['filename'].replace('.png', '').replace('Screenshot ', '')}**")
+                    # Create a proper section header for each image
+                    clean_filename = img_info['filename'].replace('.png', '').replace('.jpg', '').replace('.jpeg', '').replace('Screenshot ', '')
+                    enhanced_lines.insert(insert_pos, f'<h3>View {j}: {clean_filename}</h3>')
                     enhanced_lines.insert(insert_pos + 1, '')
                     enhanced_lines.insert(insert_pos + 2, img_info['embed'])
                     enhanced_lines.insert(insert_pos + 3, '')
