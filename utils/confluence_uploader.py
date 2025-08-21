@@ -147,6 +147,23 @@ class ConfluenceUploader:
     
     def _post_process_html_for_confluence(self, html_content: str) -> str:
         """Post-process HTML to ensure Confluence compatibility."""
+        # Handle the new structure: centered container with left-aligned content
+        if '<div style="max-width: 800px; margin: 0 auto; text-align: left;">' in html_content:
+            # Extract the content from the centered container
+            content_start = html_content.find('<div style="max-width: 800px; margin: 0 auto; text-align: left;">')
+            content_end = html_content.rfind('</div>')
+            
+            if content_start != -1 and content_end != -1:
+                # Get the content inside the div (skip the opening div tag)
+                inner_content = html_content[content_start + 58:content_end]  # Skip the opening div tag
+                
+                # Process the inner content for Confluence compatibility
+                processed_content = self._process_inner_content(inner_content)
+                
+                # Re-wrap in centered container for Confluence
+                return f'<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n{processed_content}\n</div>'
+        
+        # Fallback to original processing for backward compatibility
         # Ensure proper paragraph structure
         if not html_content.startswith('<'):
             html_content = f'<p>{html_content}</p>'
@@ -156,6 +173,18 @@ class ConfluenceUploader:
         html_content = html_content.replace('\n\n', '</p><p>')  # Proper paragraph breaks
         
         return html_content
+    
+    def _process_inner_content(self, content: str) -> str:
+        """Process inner content for Confluence compatibility."""
+        # Ensure proper paragraph structure
+        if not content.startswith('<'):
+            content = f'<p>{content}</p>'
+        
+        # Fix common HTML issues for Confluence
+        content = content.replace('<p></p>', '')  # Remove empty paragraphs
+        content = content.replace('\n\n', '</p><p>')  # Proper paragraph breaks
+        
+        return content
     
     def _basic_markdown_conversion(self, markdown_content: str) -> str:
         """Basic markdown conversion as fallback (original implementation)."""

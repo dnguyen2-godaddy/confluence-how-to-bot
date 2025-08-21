@@ -252,25 +252,22 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
         for dest_path in copied_files:
             print(f"Copied image: {os.path.basename(dest_path)}")
         
-        # Create Markdown documentation with unified format
+        # Create Markdown documentation with centered container and left-aligned content
         markdown_filename = doc_filename
         with open(markdown_filename, 'w', encoding='utf-8') as f:
-            # Unified structure - same for all
-            f.write('<div style="text-align: center; max-width: 800px; margin: 0 auto;">\n\n')
+            # Centered container with left-aligned content inside
+            f.write('<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n\n')
             f.write("<h1>Dashboard User Guide</h1>\n")
             
-            # Main documentation content
+            # Main documentation content (left-aligned)
             f.write(documentation_text)
             f.write("\n\n")
             
-            # Unified screenshots section - same format for all
-            f.write("<h2>Dashboard Screenshots</h2>\n\n")
+            # Add metadata footer (screenshots will be embedded by Confluence uploader)
+            f.write("---\n\n")
             f.write(f"**Screenshot Analysis Date:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
             f.write(f"**Screenshots Analyzed:** {len(valid_image_paths)} image{'s' if len(valid_image_paths) > 1 else ''}\n\n")
             f.write(f"*Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis*\n\n")
-            
-            # Clean footer
-            f.write("---\n\n")
             f.write("*This documentation was automatically generated using AI analysis.*\n")
             f.write("*For questions or updates, please contact the BI team.*\n\n")
             f.write("</div>")
