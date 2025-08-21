@@ -10,6 +10,7 @@ import logging
 import os
 import requests
 from base64 import b64encode
+from datetime import datetime
 from typing import Optional, Dict, Any
 from urllib.parse import urljoin
 
@@ -406,19 +407,37 @@ class ConfluenceUploader:
                     cleaned_path = os.path.expanduser(image_path.strip().strip('"').strip("'"))
                     
                     if os.path.exists(cleaned_path):
-                        image_url = self.upload_image(cleaned_path, page_id)
-                        if image_url:
-                            filename = os.path.basename(cleaned_path)
-                            print(f"Uploaded: {filename}")
-                            # Create Confluence image macro for embedding
-                            image_embed = f'<ac:image ac:width="800"><ri:attachment ri:filename="{filename}" /></ac:image>'
-                            image_embeds.append({
-                                'section': f"**Dashboard View {i}**",
-                                'embed': image_embed,
-                                'filename': filename
-                            })
-                        else:
-                            print(f"Failed to upload: {os.path.basename(cleaned_path)}")
+                        # Create unique filename to avoid conflicts
+                        original_filename = os.path.basename(cleaned_path)
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        unique_filename = f"{timestamp}_{i}_{original_filename}"
+                        
+                        # Create a temporary copy with unique name
+                        import tempfile
+                        import shutil
+                        
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(original_filename)[1]) as temp_file:
+                            shutil.copy2(cleaned_path, temp_file.name)
+                            temp_path = temp_file.name
+                        
+                        try:
+                            # Upload the temporary file
+                            image_url = self.upload_image(temp_path, page_id)
+                            if image_url:
+                                print(f"Uploaded: {original_filename}")
+                                # Create Confluence image macro for embedding
+                                image_embed = f'<ac:image ac:width="800"><ri:attachment ri:filename="{unique_filename}" /></ac:image>'
+                                image_embeds.append({
+                                    'section': f"**Dashboard View {i}**",
+                                    'embed': image_embed,
+                                    'filename': unique_filename
+                                })
+                            else:
+                                print(f"Failed to upload: {original_filename}")
+                        finally:
+                            # Clean up temporary file
+                            if os.path.exists(temp_path):
+                                os.unlink(temp_path)
                     else:
                         print(f"Image not found: {cleaned_path}")
                         # Try to give more helpful information
