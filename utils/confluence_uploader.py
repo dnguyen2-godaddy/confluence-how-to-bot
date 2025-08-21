@@ -150,6 +150,12 @@ class ConfluenceUploader:
         # Debug: Log what we're processing
         logger.info(f"Processing HTML content: {html_content[:200]}...")
         
+        # For HTML content from dashboard analyzer, preserve ALL tags exactly
+        if html_content.startswith('<div') or '<h2>' in html_content:
+            logger.info(f"Detected HTML content - preserving exactly as-is: {html_content[:200]}...")
+            # Return HTML content completely unchanged
+            return html_content
+        
         # Handle the new structure: centered container with left-aligned content
         if '<div style="max-width: 800px; margin: 0 auto; text-align: left;">' in html_content:
             # Extract the content from the centered container
@@ -169,12 +175,6 @@ class ConfluenceUploader:
                     # Process plain text content
                     processed_content = self._process_inner_content(inner_content)
                     return f'<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n{processed_content}\n</div>'
-        
-        # For any HTML content, ensure it's properly formatted for Confluence
-        if html_content.startswith('<'):
-            # This is HTML content - preserve all HTML tags exactly
-            logger.info(f"Preserving HTML content without modification: {html_content[:200]}...")
-            return html_content
         
         # Fallback to original processing for backward compatibility
         # Ensure proper paragraph structure
