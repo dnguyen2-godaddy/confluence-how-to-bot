@@ -36,7 +36,7 @@ def get_bedrock_client():
     """Get a configured Bedrock client using AWS SSO profile."""
     # Use AWS SSO profile for authentication
     # This will automatically handle Okta authentication flow
-    profile_name = 'gd-aws-usa-cpo-gdac-dev-private-poweruser'
+    profile_name = 'g-aws-usa-gd-aisummerca-dev-private-poweruser'
     
     try:
         # Create session with the SSO profile
