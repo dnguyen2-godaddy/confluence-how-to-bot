@@ -462,36 +462,40 @@ class ConfluenceUploader:
     def _embed_images_in_content(self, content: str, image_embeds: list) -> str:
         """Embed images into the content at the very end."""
         try:
-            # Convert content to lines for easier manipulation
-            lines = content.split('\n')
-            enhanced_lines = list(lines)  # Copy all lines first
-            
             # Always add images at the very end, before any footer
             if image_embeds:
-                # Find the last substantive content line (before footer)
-                insert_index = len(enhanced_lines)
-                for i in range(len(enhanced_lines) - 1, -1, -1):
-                    line = enhanced_lines[i].strip()
-                    if line and not line.startswith('---') and not line.startswith('*This documentation was automatically'):
-                        insert_index = i + 1
-                        break
+                # Find the footer section to insert images before it
+                footer_markers = ['---', '*This documentation was automatically generated', 'For questions or updates']
                 
-                # Insert images section at the end
-                enhanced_lines.insert(insert_index, '')
-                enhanced_lines.insert(insert_index + 1, '<h2>Dashboard Screenshots</h2>')
-                enhanced_lines.insert(insert_index + 2, '')
+                # Find the best insertion point before footer
+                insert_point = content
+                for marker in footer_markers:
+                    if marker in content:
+                        # Insert images before the footer
+                        parts = content.split(marker, 1)
+                        if len(parts) == 2:
+                            insert_point = parts[0] + '\n\n<h2>Dashboard Screenshots</h2>\n\n'
+                            
+                            # Add each image with proper formatting
+                            for j, img_info in enumerate(image_embeds, 1):
+                                clean_filename = img_info['filename'].replace('.png', '').replace('.jpg', '').replace('.jpeg', '').replace('Screenshot ', '')
+                                insert_point += f'<h3>View {j}: {clean_filename}</h3>\n\n'
+                                insert_point += f'{img_info["embed"]}\n\n'
+                            
+                            # Add the footer back
+                            insert_point += marker + parts[1]
+                            return insert_point
                 
-                insert_pos = insert_index + 3
+                # If no footer found, append images at the end
+                insert_point = content + '\n\n<h2>Dashboard Screenshots</h2>\n\n'
                 for j, img_info in enumerate(image_embeds, 1):
-                    # Create a proper section header for each image
                     clean_filename = img_info['filename'].replace('.png', '').replace('.jpg', '').replace('.jpeg', '').replace('Screenshot ', '')
-                    enhanced_lines.insert(insert_pos, f'<h3>View {j}: {clean_filename}</h3>')
-                    enhanced_lines.insert(insert_pos + 1, '')
-                    enhanced_lines.insert(insert_pos + 2, img_info['embed'])
-                    enhanced_lines.insert(insert_pos + 3, '')
-                    insert_pos += 4
+                    insert_point += f'<h3>View {j}: {clean_filename}</h3>\n\n'
+                    insert_point += f'{img_info["embed"]}\n\n'
+                
+                return insert_point
             
-            return '\n'.join(enhanced_lines)
+            return content
             
         except Exception as e:
             logger.error(f"Error embedding images in content: {e}")
