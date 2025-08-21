@@ -120,7 +120,14 @@ OUTPUT FORMAT (copy this structure exactly - NO BLANK LINES between headers and 
 
 <h2>Dashboard Views</h2>
 Based on the dashboard images, I can identify the following views:
-[DYNAMIC LIST - Create the exact number of views you see in the images, numbered appropriately]
+<ol>
+<li>[View 1 Name]</li>
+<li>[View 2 Name]</li>
+<li>[View 3 Name]</li>
+</ol>
+
+<h2>New Additions, Features and Changes</h2>
+[Describe any new features, improvements, or changes visible in the dashboard images. Focus on what you can actually see, not assumptions. List them as numbered items with <strong>bold headers</strong> for each feature.]
 
 <h2>Detailed Overview of Each View</h2>
 [DYNAMIC VIEW SECTIONS - Create exactly the number of <h3> sections that match the views you identified above. Each view should have:]
@@ -128,9 +135,15 @@ Based on the dashboard images, I can identify the following views:
 <h3>1. [View Name - Based on what you see]</h3>
 [Description of what this view shows and its business purpose based on the image content]
 <strong>Metrics Reported</strong>
-[DYNAMIC LIST - List the actual metrics you can see in this view, numbered appropriately]
+<ol>
+<li>[Metric 1]: [Description]</li>
+<li>[Metric 2]: [Description]</li>
+<li>[Metric 3]: [Description]</li>
+</ol>
 <strong>View Specific Drill Down Control</strong>
 [Description of available drill-down options and controls visible in this view]
+<strong>Data Source</strong>
+[Information about data sources and refresh schedules if visible]
 
 [CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially]
 
