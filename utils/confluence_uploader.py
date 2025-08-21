@@ -176,13 +176,17 @@ class ConfluenceUploader:
     
     def _process_inner_content(self, content: str) -> str:
         """Process inner content for Confluence compatibility."""
-        # Ensure proper paragraph structure
+        # Don't wrap HTML content in paragraph tags - preserve existing HTML structure
         if not content.startswith('<'):
+            # Only wrap plain text in paragraphs
             content = f'<p>{content}</p>'
-        
-        # Fix common HTML issues for Confluence
-        content = content.replace('<p></p>', '')  # Remove empty paragraphs
-        content = content.replace('\n\n', '</p><p>')  # Proper paragraph breaks
+        else:
+            # Content already has HTML tags, preserve them
+            # Just clean up any empty paragraphs
+            content = content.replace('<p></p>', '')
+            
+            # Handle line breaks between HTML elements properly
+            content = content.replace('\n\n', '\n')
         
         return content
     
@@ -238,6 +242,9 @@ class ConfluenceUploader:
         # Convert markdown to Confluence storage format
         if content.startswith('#') or '##' in content:
             storage_content = self.convert_markdown_to_confluence(content)
+        elif content.startswith('<div') or '<h2>' in content:
+            # Content is HTML from dashboard analyzer - process it for Confluence
+            storage_content = self._post_process_html_for_confluence(content)
         else:
             # Assume it's already in storage format
             storage_content = content

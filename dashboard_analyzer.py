@@ -97,6 +97,10 @@ CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
 - Use <strong>bold text</strong> for subsection names: <strong>Metrics Reported</strong>, <strong>Data Source</strong>, <strong>View Specific Drill Down Control</strong>
 - CRITICAL: Follow the template structure word-for-word - do not add extra sections
 - Write in professional business language for GoDaddy stakeholders
+- MANDATORY: Use proper HTML tags for ALL formatting - <strong>, <h2>, <h3>, <ul>, <li>
+- MANDATORY: Create proper numbered lists using <ol><li> for all numbered items
+- MANDATORY: Create proper bullet lists using <ul><li> for all bullet points
+- MANDATORY: Use <strong> tags around ALL subsection headers like "Metrics Reported", "Data Source", etc.
 
 CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
 - OUTPUT ONLY THE DOCUMENTATION using the EXACT structure above
@@ -118,9 +122,6 @@ OUTPUT FORMAT (copy this structure exactly - NO BLANK LINES between headers and 
 Based on the dashboard images, I can identify the following views:
 [DYNAMIC LIST - Create the exact number of views you see in the images, numbered appropriately]
 
-<h2>New Additions, Features and Changes</h2>
-[Describe any new features, improvements, or changes visible in the dashboard images. Focus on what you can actually see, not assumptions]
-
 <h2>Detailed Overview of Each View</h2>
 [DYNAMIC VIEW SECTIONS - Create exactly the number of <h3> sections that match the views you identified above. Each view should have:]
 
@@ -130,8 +131,6 @@ Based on the dashboard images, I can identify the following views:
 [DYNAMIC LIST - List the actual metrics you can see in this view, numbered appropriately]
 <strong>View Specific Drill Down Control</strong>
 [Description of available drill-down options and controls visible in this view]
-<strong>Data Source</strong>
-[Information about data sources and refresh schedules if visible]
 
 [CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially]
 
@@ -265,11 +264,11 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
             
             # Add metadata footer (screenshots will be embedded by Confluence uploader)
             f.write("---\n\n")
-            f.write(f"**Screenshot Analysis Date:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
-            f.write(f"**Screenshots Analyzed:** {len(valid_image_paths)} image{'s' if len(valid_image_paths) > 1 else ''}\n\n")
-            f.write(f"*Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis*\n\n")
-            f.write("*This documentation was automatically generated using AI analysis.*\n")
-            f.write("*For questions or updates, please contact the BI team.*\n\n")
+            f.write(f"Screenshot Analysis Date: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
+            f.write(f"Screenshots Analyzed: {len(valid_image_paths)} image{'s' if len(valid_image_paths) > 1 else ''}\n\n")
+            f.write(f"Generated using AWS Bedrock Claude 3.5 Sonnet AI analysis\n\n")
+            f.write("This documentation was automatically generated using AI analysis.\n")
+            f.write("For questions or updates, please contact the BI team.\n\n")
             f.write("</div>")
         
         logger.info(f"Dashboard documentation generated: {markdown_filename}")
