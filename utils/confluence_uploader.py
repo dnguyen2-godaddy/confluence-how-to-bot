@@ -151,11 +151,11 @@ class ConfluenceUploader:
         # Debug: Log what we're processing
         logger.info(f"Processing HTML content: {html_content[:200]}...")
         
-        # For HTML content from dashboard analyzer, preserve ALL tags exactly
+        # For HTML content from dashboard analyzer, ensure it's in Confluence storage format
         if html_content.startswith('<div') or '<h2>' in html_content or '<h3>' in html_content or '<strong>' in html_content:
-            logger.info(f"Detected HTML content - preserving exactly as-is: {html_content[:200]}...")
-            # Return HTML content completely unchanged - no processing at all
-            return html_content
+            logger.info(f"Detected HTML content - converting to Confluence storage format: {html_content[:200]}...")
+            # Convert HTML to Confluence storage format to ensure headers are recognized
+            return self._convert_html_to_confluence_storage(html_content)
         
         # Handle the new structure: centered container with left-aligned content
         if '<div style="max-width: 800px; margin: 0 auto; text-align: left;">' in html_content:
@@ -188,6 +188,51 @@ class ConfluenceUploader:
         html_content = html_content.replace('\n\n', '</p><p>')  # Proper paragraph breaks
         
         return html_content
+    
+    def _convert_html_to_confluence_storage(self, html_content: str) -> str:
+        """Convert HTML content to Confluence storage format to ensure proper header recognition."""
+        try:
+            # Extract content from wrapper div if present
+            if '<div style="max-width: 800px; margin: 0 auto; text-align: left;">' in html_content:
+                content_start = html_content.find('<div style="max-width: 800px; margin: 0 auto; text-align: left;">')
+                content_end = html_content.rfind('</div>')
+                if content_start != -1 and content_end != -1:
+                    inner_content = html_content[content_start + 58:content_end]
+                else:
+                    inner_content = html_content
+            else:
+                inner_content = html_content
+            
+            # Ensure proper Confluence storage format
+            # Confluence needs specific structure to recognize headers
+            confluence_content = inner_content
+            
+            # Clean up any extra whitespace between elements
+            confluence_content = confluence_content.replace('\n\n', '\n')
+            confluence_content = confluence_content.replace('\n \n', '\n')
+            
+            # Ensure headers are properly formatted for Confluence
+            # Confluence needs clean header tags without extra spacing
+            confluence_content = confluence_content.replace('<h1>\n', '<h1>')
+            confluence_content = confluence_content.replace('<h2>\n', '<h2>')
+            confluence_content = confluence_content.replace('<h3>\n', '<h3>')
+            
+            # Ensure proper paragraph structure around headers
+            # Headers should not be wrapped in paragraph tags
+            confluence_content = confluence_content.replace('<p><h1>', '<h1>')
+            confluence_content = confluence_content.replace('<p><h2>', '<h2>')
+            confluence_content = confluence_content.replace('<p><h3>', '<h3>')
+            confluence_content = confluence_content.replace('</h1></p>', '</h1>')
+            confluence_content = confluence_content.replace('</h2></p>', '</h2>')
+            confluence_content = confluence_content.replace('</h3></p>', '</h3>')
+            
+            logger.info(f"Converted to Confluence storage format: {confluence_content[:200]}...")
+            return confluence_content
+            
+        except Exception as e:
+            logger.error(f"Error converting HTML to Confluence storage format: {e}")
+            # Fallback to original content
+            return html_content
     
     def _process_inner_content(self, content: str) -> str:
         """Process inner content for Confluence compatibility."""
