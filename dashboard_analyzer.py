@@ -21,14 +21,11 @@ from utils import config, ImageProcessor
 # Load environment variables
 load_dotenv()
 
-# Configuration
+# Image optimization configuration (optional)
 ENABLE_IMAGE_OPTIMIZATION = os.getenv('ENABLE_IMAGE_OPTIMIZATION', 'true').lower() == 'true'
 OPTIMIZATION_QUALITY = int(os.getenv('OPTIMIZATION_QUALITY', '85'))  # JPEG quality 0-100
 OPTIMIZATION_MAX_WIDTH = int(os.getenv('OPTIMIZATION_MAX_WIDTH', '1920'))
 OPTIMIZATION_MAX_HEIGHT = int(os.getenv('OPTIMIZATION_MAX_HEIGHT', '1080'))
-
-# Analysis configuration (keeping it simple and working)
-ENABLE_ENHANCED_ANALYSIS = os.getenv('ENABLE_ENHANCED_ANALYSIS', 'true').lower() == 'true'
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -77,10 +74,10 @@ def create_unified_prompt(is_multi_image: bool = False) -> str:
     # Define conditional content  
     multi_note = " across multiple dashboard sections" if is_multi_image else ""
     
-    return f"""You are a business intelligence expert creating documentation guidelines for GoDaddy stakeholders. Analyze the dashboard images to understand the objective, information/products it conveys, and how it helps users/stakeholders.
+    return f"""You are a business intelligence expert creating comprehensive documentation guidelines for GoDaddy stakeholders. Analyze the dashboard images to understand the objective, information/products it conveys, and how it helps users/stakeholders.
 
 INSTRUCTIONS:
-Create professional documentation that data analysts at GoDaddy will use to help their stakeholders understand how to use their dashboards. Focus on practical usage and navigation guidance for business users.
+Create comprehensive, in-depth documentation that data analysts at GoDaddy will use to help their stakeholders understand how to use their dashboards. Focus on practical usage and navigation guidance for business users. Always provide detailed, thorough analysis with comprehensive insights.
 
 ANALYSIS REQUIREMENTS:
 - Carefully examine all visible filters, dropdowns, buttons, and interactive elements in the dashboard images
@@ -88,6 +85,8 @@ ANALYSIS REQUIREMENTS:
 - Identify clickable elements, drill-down capabilities, and navigation features
 - Report ONLY what is clearly visible in the screenshots - do not make assumptions
 - DYNAMICALLY determine the number of views/sections based on what you actually see in the images
+- Provide comprehensive, in-depth analysis of each element and view
+- Give detailed explanations and business context for all visible features
 
 CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
 - MANDATORY: Use ONLY the exact structure provided below - NO other sections allowed
