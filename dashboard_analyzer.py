@@ -40,7 +40,7 @@ def get_bedrock_client():
     # Use AWS credential chain for authentication
     # This supports: IAM roles, AWS SSO, CLI profiles, instance profiles, env vars
     client_kwargs = {
-        'service_name': 'bedrock-runtime',
+        'service_name': 'bedrock-agent-runtime',
         'region_name': config.aws_region
     }
     
@@ -56,7 +56,7 @@ def get_bedrock_client():
     if hasattr(config, 'aws_profile') and config.aws_profile:
         # Use session with profile
         session = boto3.Session(profile_name=config.aws_profile)
-        return session.client('bedrock-runtime', region_name=config.aws_region)
+        return session.client('bedrock-agent-runtime', region_name=config.aws_region)
     
     return boto3.client(**client_kwargs)
 
