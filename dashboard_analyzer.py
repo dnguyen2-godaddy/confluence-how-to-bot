@@ -92,67 +92,68 @@ CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
 - MANDATORY: Use ONLY the exact structure provided below - NO other sections allowed
 - FORBIDDEN: Do NOT create sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations", "Interactive Features", "Usage Guidelines"
 - REQUIRED SECTIONS ONLY: Objective, Dashboard Views, New Additions, Detailed Overview, Dashboard Controls, How tos
-- Use <h2> for main sections (Objective, Dashboard Views, etc.)
-- Use <h3> for numbered detailed views - DYNAMIC COUNTING based on actual content (1., 2., 3., etc.)
+- Use <h2 style="font-weight: bold;"> for main sections (Objective, Dashboard Views, etc.)
+- Use <h3 style="font-weight: bold;"> for numbered detailed views - DYNAMIC COUNTING based on actual content (1., 2., 3., etc.)
 - Use <strong>bold text</strong> for subsection names: <strong>Metrics Reported</strong>, <strong>Data Source</strong>, <strong>View Specific Drill Down Control</strong>
 - CRITICAL: Follow the template structure word-for-word - do not add extra sections
 - Write in professional business language for GoDaddy stakeholders
-- MANDATORY: Use proper HTML tags for ALL formatting - <strong>, <h2>, <h3>, <ul>, <li>
+- MANDATORY: Use proper HTML tags for ALL formatting - <strong>, <h2 style="font-weight: bold;">, <h3 style="font-weight: bold;">, <ul>, <li>
 - MANDATORY: Create proper numbered lists using <ol><li> for all numbered items
 - MANDATORY: Create proper bullet lists using <ul><li> for all bullet points
 - MANDATORY: Use <strong> tags around ALL subsection headers like "Metrics Reported", "Data Source", etc.
 
 CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
 - OUTPUT ONLY THE DOCUMENTATION using the EXACT structure above
-- START with "<h2>Objective</h2>" immediately - no other content before it
+- START with "<h2 style="font-weight: bold;">Objective</h2>" immediately - no other content before it
 - NO EXTRA LINE BREAKS: Content must follow immediately after each header tag
-- CRITICAL: After <h2>Objective</h2> the next line must be the explanation text with NO blank line in between
-- INCLUDE ALL sections in the exact order: Objective → Dashboard Views → New Additions → Detailed Overview → Dashboard Controls → How tos
+- CRITICAL: After <h2 style="font-weight: bold;">Objective</h2> the next line must be the explanation text with NO blank line in between
+- CRITICAL: After EVERY header tag, content must follow immediately with NO blank lines
+- CRITICAL: NO blank lines between ANY headers and their content
+- CRITICAL: NO spaces, line breaks, or empty lines between headers and paragraphs
+- CRITICAL: Headers and content must be directly connected with zero spacing
+- CRITICAL: Use this exact format: <h2>Header</h2>Content immediately follows
+- CRITICAL: Provide COMPREHENSIVE, IN-DEPTH analysis for each section
+- CRITICAL: Be SPECIFIC and DETAILED - avoid generic descriptions
+- CRITICAL: Include BUSINESS CONTEXT and STRATEGIC INSIGHTS
+- CRITICAL: Make content ACTIONABLE and PRACTICAL for stakeholders
+- INCLUDE ALL sections in the exact order: Objective → Dashboard Views → Detailed Overview → Dashboard Controls → How to Use → Key Insights
 - FORBIDDEN: Do NOT create any sections not shown in the template
 - FORBIDDEN: Do NOT use sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations"
-- DYNAMIC VIEW COUNTING: Create the exact number of <h3> sections that match what you see in the images (could be 1, 3, 7, etc.)
+- DYNAMIC VIEW COUNTING: Create the exact number of <h3 style="font-weight: bold;"> sections that match what you see in the images (could be 1, 3, 7, etc.)
 - NO introductory text, explanations, or template deviations allowed
 
-OUTPUT FORMAT (copy this structure exactly - NO BLANK LINES between headers and content):
+OUTPUT FORMAT (copy this structure exactly - NO SPACING between headers and content):
 
-<h2>Objective</h2>
-[Explain the dashboard's purpose in 3-5 sentences. What business problems does it solve and how does it help GoDaddy stakeholders make informed decisions{multi_note}]
-
-<h2>Dashboard Views</h2>
+<h2 style="font-weight: bold;">Objective</h2>
+[Provide a comprehensive 4-6 sentence overview explaining the dashboard's strategic purpose, business context, target audience, key performance indicators, and how it enables data-driven decision making for GoDaddy stakeholders. Be specific about the business unit, operational focus, and strategic value.{multi_note}]
+<h2 style="font-weight: bold;">Dashboard Views</h2>
 Based on the dashboard images, I can identify the following views:
 <ol>
-<li>[View 1 Name]</li>
-<li>[View 2 Name]</li>
-<li>[View 3 Name]</li>
+<li>[Dynamically list the views you see in the images with brief 1-2 word descriptions]</li>
 </ol>
-
-<h2>New Additions, Features and Changes</h2>
-[Describe any new features, improvements, or changes visible in the dashboard images. Focus on what you can actually see, not assumptions. List them as numbered items with <strong>bold headers</strong> for each feature.]
-
-<h2>Detailed Overview of Each View</h2>
-[DYNAMIC VIEW SECTIONS - Create exactly the number of <h3> sections that match the views you identified above. Each view should have:]
-
-<h3>1. [View Name - Based on what you see]</h3>
-[Description of what this view shows and its business purpose based on the image content]
+<h2 style="font-weight: bold;">Detailed Overview of Each View</h2>
+[DYNAMIC VIEW SECTIONS - Create exactly the number of <h3 style="font-weight: bold;"> sections that match the views you identified above. Each view should have comprehensive, in-depth analysis:]
+<h3 style="font-weight: bold;">1. [View Name - Based on what you see]</h3>
+[Provide a detailed 3-4 sentence description of what this view displays, its business purpose, target audience, and strategic importance. Explain the specific insights it provides and how stakeholders can use this information.]
 <strong>Metrics Reported</strong>
 <ol>
-<li>[Metric 1]: [Description]</li>
-<li>[Metric 2]: [Description]</li>
-<li>[Metric 3]: [Description]</li>
+<li>[Dynamically list ALL metrics you see in the images with specific names, units, and brief explanations of what each metric measures]</li>
 </ol>
+<strong>Data Visualization Type</strong>
+[Describe the specific chart type, graph style, or visualization method used in this view. Explain why this visualization choice is effective for the data being presented.]
+<strong>Business Context & Interpretation</strong>
+[Provide 2-3 sentences explaining what these metrics mean in business terms, how to interpret trends, what good vs. poor performance looks like, and what actions stakeholders should take based on the data.]
 <strong>View Specific Drill Down Control</strong>
-[Description of available drill-down options and controls visible in this view]
-<strong>Data Source</strong>
-[Information about data sources and refresh schedules if visible]
-
-[CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially]
-
-<h2>Dashboard Controls</h2>
-[List and describe the specific filters, dropdowns, date selectors, and other controls visible in the dashboard images. Include their exact names and locations as shown in the screenshots.]
-
-<h2>How tos:</h2>
-[Based on what you see in the dashboard images, provide specific step-by-step instructions for using THIS dashboard. Include actual filter names, button locations, and specific features visible in the screenshots. Make this practical and actionable for users of this specific dashboard.]
-
+[Describe in detail the available drill-down options, filters, and interactive controls visible in this view. Include specific names, locations, and how users can navigate deeper into the data.]
+<strong>Data Source & Refresh Schedule</strong>
+[Specify the data sources, update frequency, and any refresh schedules visible in the dashboard. Include data quality indicators and any latency considerations.]
+[CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially with the same comprehensive detail level]
+<h2 style="font-weight: bold;">Dashboard Controls & Filters</h2>
+[Provide a comprehensive overview of ALL interactive elements including filters, dropdowns, date selectors, search boxes, and navigation controls. For each control, specify its exact name, location, purpose, available options, and how it affects the dashboard view. Include any global vs. view-specific controls.]
+<h2 style="font-weight: bold;">How to Use This Dashboard</h2>
+[Provide detailed, step-by-step instructions for using THIS specific dashboard. Include exact filter names, button locations, navigation paths, and specific features visible in the screenshots. Make this practical and actionable with real examples. Include troubleshooting tips for common issues users might encounter.]
+<h2 style="font-weight: bold;">Key Insights & Recommendations</h2>
+[Based on the dashboard content and metrics, provide 3-4 actionable business insights and recommendations. Focus on what the data reveals about performance, trends, opportunities, and areas for improvement. Make these specific to GoDaddy's business context.]
 [Include all images used, in-lined with text and document.]"""
 
 
@@ -264,24 +265,23 @@ def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
         for dest_path in copied_files:
             print(f"Copied image: {os.path.basename(dest_path)}")
         
-        # Create Markdown documentation with centered container and left-aligned content
+        # Create clean, well-formatted documentation for Confluence with centered margin and left alignment
         markdown_filename = doc_filename
         with open(markdown_filename, 'w', encoding='utf-8') as f:
-            # Centered container with left-aligned content inside
-            f.write('<div style="max-width: 800px; margin: 0 auto; text-align: left;">\n\n')
-            f.write("<h1>Dashboard User Guide</h1>\n")
+            # Centered container with left-aligned text
+            f.write('<div style="text-align: left; max-width: 800px; margin: 0 auto;">\n\n')
+            f.write('<h1 style="font-weight: bold; text-align: left;">Dashboard User Guide</h1>\n\n')
             
-            # Main documentation content (left-aligned)
+            # Main documentation content - ensure it's properly formatted
             f.write(documentation_text)
-            f.write("\n\n")
+            f.write('\n\n')
             
-            # Add metadata footer (screenshots will be embedded by Confluence uploader)
-            f.write("---\n\n")
-            f.write(f"Screenshot Analysis Date: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n\n")
-            f.write(f"Screenshots Analyzed: {len(valid_image_paths)} image{'s' if len(valid_image_paths) > 1 else ''}\n\n")
-            f.write("This documentation was automatically generated using AI analysis.\n")
-            f.write("For questions or updates, please contact the BI team.\n\n")
-            f.write("</div>")
+            # Simple metadata footer
+            f.write('<hr style="border: none; border-top: 2px solid #DFE1E6; margin: 40px 0;"/>\n\n')
+            f.write(f'<p><strong>Analysis Date:</strong> {datetime.now().strftime("%B %d, %Y at %I:%M %p")}</p>\n')
+            f.write(f'<p><strong>Images Analyzed:</strong> {len(valid_image_paths)} image{"s" if len(valid_image_paths) > 1 else ""}</p>\n')
+            f.write('<p>Generated using AI analysis for GoDaddy BI team</p>\n')
+            f.write('</div>')
         
         logger.info(f"Dashboard documentation generated: {markdown_filename}")
         print(f"Markdown documentation saved to: {markdown_filename}")
@@ -343,7 +343,7 @@ def publish_to_confluence(doc_file: str, title: str = None, images: list = None)
         page_url = uploader.upload_content(
             title=title,
             content=content,
-            content_type='markdown',
+            content_type='html',
             images=images or []
         )
         
@@ -490,11 +490,15 @@ def upload_dashboard_image():
                     print(f"File not found: {path_candidate}")
     else:
         print("No recent images found. Please enter file paths.")
+        print("Enter one file path per line, or 'ff' to finish when done.")
+        print()
+        
         while True:
-            if len(selected_images) >= 1:
-                done = input(f"Currently selected: {len(selected_images)} image(s). Add more? (y/n): ").strip().lower()
-                if done == 'n':
-                    break
+            print(f"Currently selected: {len(selected_images)} image(s)")
+            if selected_images:
+                for img in selected_images:
+                    print(f"   - {os.path.basename(img)}")
+                print()
             
             img_path = input("Enter image file path (or 'ff' to finish, 'qq' to quit): ").strip()
             if img_path.lower() in ['qq', 'q', 'exit']:
