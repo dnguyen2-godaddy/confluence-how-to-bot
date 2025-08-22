@@ -65,7 +65,7 @@ class ConfluenceUploader:
                     password=self.api_token,
                     cloud=True
                 )
-                logger.info(f"🔗 Confluence client initialized using atlassian library: {self.confluence_url}")
+                logger.info(f"Confluence client initialized using atlassian library: {self.confluence_url}")
             except Exception as e:
                 logger.error(f"Failed to initialize atlassian Confluence client: {e}")
                 self.confluence = None
@@ -92,9 +92,9 @@ class ConfluenceUploader:
         self.api_base = urljoin(wiki_url, 'rest/api/')
         
         if self.confluence:
-            logger.info(f"🔗 Confluence uploader initialized using atlassian library: {self.confluence_url}")
+            logger.info(f"Confluence uploader initialized using atlassian library: {self.confluence_url}")
         else:
-            logger.info(f"🔗 Confluence uploader initialized using REST API: {self.confluence_url}")
+            logger.info(f"Confluence uploader initialized using REST API: {self.confluence_url}")
     
     def test_connection(self) -> bool:
         """Test Confluence API connection."""

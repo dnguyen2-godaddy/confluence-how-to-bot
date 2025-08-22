@@ -41,12 +41,12 @@ An AI-powered tool that analyzes QuickSight dashboard screenshots and generates 
    python dashboard_analyzer.py
    ```
 
-## 🎯 How It Works
+## How It Works
 
 1. **📸 Upload Screenshot**: Select dashboard image from recent files or enter path
 2. **🤖 AI Analysis**: Comprehensive dashboard analysis with AWS Bedrock
-3. **📝 Generate Documentation**: Professional how-to guide creation
-4. **🔗 Publish to Confluence**: Automatic publishing with custom titles (optional)
+3. **Generate Documentation**: Professional how-to guide creation
+4. **Publish to Confluence**: Automatic publishing with custom titles (optional)
 
 ## 📋 Supported Formats
 
@@ -59,14 +59,14 @@ An AI-powered tool that analyzes QuickSight dashboard screenshots and generates 
 - BMP
 - Maximum file size: 10MB
 
-## 📊 Analysis Includes
+## Analysis Includes
 
-### 📈 Dashboard Overview
+### Dashboard Overview
 - Title, purpose, and objectives
 - Design quality and visual hierarchy
 - Layout and visualization arrangement
 
-### 📊 Visualization Breakdown
+### Visualization Breakdown
 - Chart types and data analysis
 - KPIs and performance indicators
 - Time ranges and filters
@@ -114,7 +114,7 @@ confluence-how-to-bot/
 └── .env                     # Environment configuration
 ```
 
-## 🔗 Confluence Setup Guide
+## Confluence Setup Guide
 
 ### Prerequisites
 - Confluence Cloud or Server/Data Center access
@@ -228,28 +228,28 @@ print('Connected!' if uploader.test_connection() else 'Failed!')
 - **Multiple Views**: Include different dashboard perspectives for comprehensive analysis
 - **Recent Data**: Use current dashboard screenshots for up-to-date analysis
 
-## 📈 Example Output
+## Example Output
 
 ```markdown
-# 📊 Dashboard User Guide: Sales Performance Scorecard
+# Dashboard User Guide: Sales Performance Scorecard
 
-## 🎯 Purpose & Overview
+## Purpose & Overview
 This dashboard tracks key sales metrics and KPIs for the sales organization...
 
-## 🚀 Getting Started
+## Getting Started
 ### Accessing the Dashboard
 1. Navigate to QuickSight in your browser
 2. Select the "Sales Performance" dashboard
 ...
 
-## 📊 Understanding the Visualizations
+## Understanding the Visualizations
 ### Revenue Trend Chart
 - **What it shows:** Monthly revenue progression
 - **How to read it:** Green indicates growth, red shows decline
 ...
 ```
 
-## 🎯 Use Cases
+## Use Cases
 
 - **Business Intelligence Teams**: Analyze dashboard effectiveness
 - **Training & Documentation**: Create user guides for dashboards  
@@ -266,10 +266,10 @@ This dashboard tracks key sales metrics and KPIs for the sales organization...
 ## 🔐 Security Best Practices
 
 ### Environment Variables
-- ✅ Store credentials in `.env` file (never commit to git)
-- ✅ Use environment-based credential management
-- ✅ No hardcoded credentials in code
-- ✅ Follow AWS IAM best practices
+- Store credentials in `.env` file (never commit to git)
+- Use environment-based credential management
+- No hardcoded credentials in code
+- Follow AWS IAM best practices
 
 ## 🚨 Troubleshooting
 
@@ -307,15 +307,15 @@ Solution: YubiKey hardware token issues
 ```
 
 ### API Token Security
-- ✅ Store tokens in `.env` file (never commit to git)
-- ✅ Use descriptive token names
-- ✅ Rotate tokens regularly (every 90 days)
-- ✅ Limit token permissions to minimum required
+- Store tokens in `.env` file (never commit to git)
+- Use descriptive token names
+- Rotate tokens regularly (every 90 days)
+- Limit token permissions to minimum required
 
 ### Access Control
-- ✅ Create dedicated service account for automation
-- ✅ Grant only necessary space permissions
-- ✅ Monitor token usage in Atlassian admin
+- Create dedicated service account for automation
+- Grant only necessary space permissions
+- Monitor token usage in Atlassian admin
 
 ## 🛠️ Dependencies
 
