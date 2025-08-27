@@ -5,38 +5,100 @@ QuickSight Dashboard Image Analyzer
 Upload and analyze QuickSight dashboard screenshots with AI-powered insights.
 """
 
-import base64
 import glob
 import json
 import logging
 import os
 from datetime import datetime
 from typing import Dict, List, Optional
+import sys
 
 import boto3
 from dotenv import load_dotenv
 
 from utils import config, ImageProcessor
+from agents import analyze_dashboard_with_agent1, create_documentation_with_agent2
+from utils.confluence_uploader import ConfluenceUploader
 
 # Load environment variables
 load_dotenv()
 
-# Image optimization configuration (optional)
-ENABLE_IMAGE_OPTIMIZATION = os.getenv('ENABLE_IMAGE_OPTIMIZATION', 'true').lower() == 'true'
-OPTIMIZATION_QUALITY = int(os.getenv('OPTIMIZATION_QUALITY', '85'))  # JPEG quality 0-100
-OPTIMIZATION_MAX_WIDTH = int(os.getenv('OPTIMIZATION_MAX_WIDTH', '1920'))
-OPTIMIZATION_MAX_HEIGHT = int(os.getenv('OPTIMIZATION_MAX_HEIGHT', '1080'))
+# Configuration - use config module for consistency
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
+def get_user_input(prompt: str, valid_options: list = None, default: str = None) -> str:
+    """Get user input with better error handling and validation."""
+    while True:
+        try:
+            user_input = input(prompt).strip()
+            
+            # Handle empty input with default
+            if not user_input and default:
+                return default
+            
+            # If no validation needed, return input
+            if not valid_options:
+                return user_input
+            
+            # Validate against valid options
+            if user_input.lower() in [opt.lower() for opt in valid_options]:
+                return user_input
+            
+            # Show valid options if validation fails
+            print(f"Invalid input. Please choose from: {', '.join(valid_options)}")
+            
+        except KeyboardInterrupt:
+            print("\n\nProcess interrupted. Goodbye!")
+            sys.exit(0)
+        except EOFError:
+            print("\n\nInput error. Please try again.")
+            continue
+
+
 def get_bedrock_client():
     """Get a configured Bedrock client using AWS SSO profile."""
     # Use AWS SSO profile for authentication
     # This will automatically handle Okta authentication flow
-    profile_name = 'g-aws-usa-gd-aisummerca-dev-private-poweruser'
+    profile_name = config.aws_default_profile
+    
+    try:
+        # Create session with the SSO profile
+        session = boto3.Session(profile_name=profile_name)
+        client = session.client('bedrock-runtime', region_name=config.aws_region)
+        
+        logger.info(f"Using AWS SSO profile: {profile_name}")
+        return client
+        
+    except Exception as e:
+        logger.error(f"Failed to create Bedrock client with SSO profile {profile_name}: {e}")
+        logger.info("Falling back to credential chain method...")
+        
+        # Fallback to credential chain method
+        client_kwargs = {
+            'service_name': 'bedrock-runtime',
+            'region_name': config.aws_region
+        }
+        
+        # Only add explicit credentials if they're provided (for backward compatibility)
+        if config.aws_access_key_id and config.aws_secret_access_key:
+            client_kwargs.update({
+                'aws_access_key_id': config.aws_access_key_id,
+                'aws_secret_access_key': config.aws_secret_access_key,
+                'aws_session_token': getattr(config, 'aws_session_token', None)
+            })
+        
+        return boto3.client(**client_kwargs)
+
+
+def get_bedrock_client_lazy():
+    """Get a configured Bedrock client with lazy loading to improve UI responsiveness."""
+    # Use AWS SSO profile for authentication
+    # This will automatically handle Okta authentication flow
+    profile_name = config.aws_default_profile
     
     try:
         # Create session with the SSO profile
@@ -68,249 +130,96 @@ def get_bedrock_client():
 
 
 
-def create_unified_prompt(is_multi_image: bool = False) -> str:
-    """Create a unified prompt for dashboard analysis and documentation generation."""
-    
-    # Define conditional content  
-    multi_note = " across multiple dashboard sections" if is_multi_image else ""
-    
-    return f"""You are a business intelligence expert creating comprehensive documentation guidelines for GoDaddy stakeholders. Analyze the dashboard images to understand the objective, information/products it conveys, and how it helps users/stakeholders.
-
-INSTRUCTIONS:
-Create comprehensive, in-depth documentation that data analysts at GoDaddy will use to help their stakeholders understand how to use their dashboards. Focus on practical usage and navigation guidance for business users. Always provide detailed, thorough analysis with comprehensive insights.
-
-ANALYSIS REQUIREMENTS:
-- Carefully examine all visible filters, dropdowns, buttons, and interactive elements in the dashboard images
-- Note specific control names, field names, and options visible in the interface
-- Identify clickable elements, drill-down capabilities, and navigation features
-- Report ONLY what is clearly visible in the screenshots - do not make assumptions
-- DYNAMICALLY determine the number of views/sections based on what you actually see in the images
-- Provide comprehensive, in-depth analysis of each element and view
-- Give detailed explanations and business context for all visible features
-
-CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
-- MANDATORY: Use ONLY the exact structure provided below - NO other sections allowed
-- FORBIDDEN: Do NOT create sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations", "Interactive Features", "Usage Guidelines"
-- REQUIRED SECTIONS ONLY: Objective, Dashboard Views, New Additions, Detailed Overview, Dashboard Controls, How tos
-- Use <h2 style="font-weight: bold;"> for main sections (Objective, Dashboard Views, etc.)
-- Use <h3 style="font-weight: bold;"> for numbered detailed views - DYNAMIC COUNTING based on actual content (1., 2., 3., etc.)
-- Use <strong>bold text</strong> for subsection names: <strong>Metrics Reported</strong>, <strong>Data Source</strong>, <strong>View Specific Drill Down Control</strong>
-- CRITICAL: Follow the template structure word-for-word - do not add extra sections
-- Write in professional business language for GoDaddy stakeholders
-- MANDATORY: Use proper HTML tags for ALL formatting - <strong>, <h2 style="font-weight: bold;">, <h3 style="font-weight: bold;">, <ul>, <li>
-- MANDATORY: Create proper numbered lists using <ol><li> for all numbered items
-- MANDATORY: Create proper bullet lists using <ul><li> for all bullet points
-- MANDATORY: Use <strong> tags around ALL subsection headers like "Metrics Reported", "Data Source", etc.
-
-CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
-- OUTPUT ONLY THE DOCUMENTATION using the EXACT structure above
-- START with "<h2 style="font-weight: bold;">Objective</h2>" immediately - no other content before it
-- NO EXTRA LINE BREAKS: Content must follow immediately after each header tag
-- CRITICAL: After <h2 style="font-weight: bold;">Objective</h2> the next line must be the explanation text with NO blank line in between
-- CRITICAL: After EVERY header tag, content must follow immediately with NO blank lines
-- CRITICAL: NO blank lines between ANY headers and their content
-- CRITICAL: NO spaces, line breaks, or empty lines between headers and paragraphs
-- CRITICAL: Headers and content must be directly connected with zero spacing
-- CRITICAL: Use this exact format: <h2>Header</h2>Content immediately follows
-- CRITICAL: Provide COMPREHENSIVE, IN-DEPTH analysis for each section
-- CRITICAL: Be SPECIFIC and DETAILED - avoid generic descriptions
-- CRITICAL: Include BUSINESS CONTEXT and STRATEGIC INSIGHTS
-- CRITICAL: Make content ACTIONABLE and PRACTICAL for stakeholders
-- INCLUDE ALL sections in the exact order: Objective → Dashboard Views → Detailed Overview → Dashboard Controls → How to Use → Key Insights
-- FORBIDDEN: Do NOT create any sections not shown in the template
-- FORBIDDEN: Do NOT use sections like "Dashboard Overview", "How to Navigate", "Understanding Visualizations"
-- DYNAMIC VIEW COUNTING: Create the exact number of <h3 style="font-weight: bold;"> sections that match what you see in the images (could be 1, 3, 7, etc.)
-- NO introductory text, explanations, or template deviations allowed
-
-OUTPUT FORMAT (copy this structure exactly - NO SPACING between headers and content):
-
-<h2 style="font-weight: bold;">Objective</h2>
-[Provide a comprehensive 4-6 sentence overview explaining the dashboard's strategic purpose, business context, target audience, key performance indicators, and how it enables data-driven decision making for GoDaddy stakeholders. Be specific about the business unit, operational focus, and strategic value.{multi_note}]
-<h2 style="font-weight: bold;">Dashboard Views</h2>
-Based on the dashboard images, I can identify the following views:
-<ol>
-<li>[Dynamically list the views you see in the images with brief 1-2 word descriptions]</li>
-</ol>
-<h2 style="font-weight: bold;">Detailed Overview of Each View</h2>
-[DYNAMIC VIEW SECTIONS - Create exactly the number of <h3 style="font-weight: bold;"> sections that match the views you identified above. Each view should have comprehensive, in-depth analysis:]
-<h3 style="font-weight: bold;">1. [View Name - Based on what you see]</h3>
-[Provide a detailed 3-4 sentence description of what this view displays, its business purpose, target audience, and strategic importance. Explain the specific insights it provides and how stakeholders can use this information.]
-<strong>Metrics Reported</strong>
-<ol>
-<li>[Dynamically list ALL metrics you see in the images with specific names, units, and brief explanations of what each metric measures]</li>
-</ol>
-<strong>Data Visualization Type</strong>
-[Describe the specific chart type, graph style, or visualization method used in this view. Explain why this visualization choice is effective for the data being presented.]
-<strong>Business Context & Interpretation</strong>
-[Provide 2-3 sentences explaining what these metrics mean in business terms, how to interpret trends, what good vs. poor performance looks like, and what actions stakeholders should take based on the data.]
-<strong>View Specific Drill Down Control</strong>
-[Describe in detail the available drill-down options, filters, and interactive controls visible in this view. Include specific names, locations, and how users can navigate deeper into the data.]
-<strong>Data Source & Refresh Schedule</strong>
-[Specify the data sources, update frequency, and any refresh schedules visible in the dashboard. Include data quality indicators and any latency considerations.]
-[CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially with the same comprehensive detail level]
-<h2 style="font-weight: bold;">Dashboard Controls & Filters</h2>
-[Provide a comprehensive overview of ALL interactive elements including filters, dropdowns, date selectors, search boxes, and navigation controls. For each control, specify its exact name, location, purpose, available options, and how it affects the dashboard view. Include any global vs. view-specific controls.]
-<h2 style="font-weight: bold;">How to Use This Dashboard</h2>
-[Provide detailed, step-by-step instructions for using THIS specific dashboard. Include exact filter names, button locations, navigation paths, and specific features visible in the screenshots. Make this practical and actionable with real examples. Include troubleshooting tips for common issues users might encounter.]
-<h2 style="font-weight: bold;">Key Insights & Recommendations</h2>
-[Based on the dashboard content and metrics, provide 3-4 actionable business insights and recommendations. Focus on what the data reveals about performance, trends, opportunities, and areas for improvement. Make these specific to GoDaddy's business context.]
-[Include all images used, in-lined with text and document.]"""
-
-
-def validate_image_file(image_path: str) -> tuple[bool, str]:
-    """Validate the uploaded image file using centralized utilities."""
-    return ImageProcessor.validate_image_file(image_path)
-
-
-def analyze_dashboard_image(image_path: str) -> Optional[str]:
-    """Convenience function for single image analysis."""
-    return analyze_dashboard_images([image_path])
-
-
-def analyze_dashboard_images(image_paths: List[str]) -> Optional[str]:
-    """Generate dashboard documentation from one or more image analysis.
-    
-    This function uses unified processing for both single and multi-image cases
-    to ensure consistent protocols and outcomes.
-    """
+def analyze_dashboard_images_multi_agent(image_paths: List[str], dashboard_name: str = "Dashboard User Guide") -> Optional[str]:
+    """Sequential multi-agent dashboard analysis: Agent 1 analyzes, Agent 2 documents."""
     try:
-        # Unified processing - no difference between single and multi-image
-        print(f"Generating comprehensive documentation from {len(image_paths)} dashboard image{'s' if len(image_paths) > 1 else ''}...")
+        print("Starting AI analysis...")
         
-        # Prepare all images for analysis using centralized utilities
-        # Apply optimization settings if enabled
-        if ENABLE_IMAGE_OPTIMIZATION:
-            print(f"Image optimization enabled (Quality: {OPTIMIZATION_QUALITY}%, Max: {OPTIMIZATION_MAX_WIDTH}x{OPTIMIZATION_MAX_HEIGHT})")
-            # Update ImageProcessor settings with our configuration
-            ImageProcessor.JPEG_QUALITY = OPTIMIZATION_QUALITY
-            ImageProcessor.MAX_WIDTH = OPTIMIZATION_MAX_WIDTH
-            ImageProcessor.MAX_HEIGHT = OPTIMIZATION_MAX_HEIGHT
+        # Step 1: Agent 1 - Image Analysis and Data Extraction
+        print("Extracting dashboard information...")
+        analysis_data = analyze_dashboard_with_agent1(image_paths, get_bedrock_client())
         
-        image_data_list, valid_image_paths = ImageProcessor.prepare_multiple_images_for_bedrock(image_paths)
-        
-        if not image_data_list:
-            print("No valid images to process")
+        if not analysis_data:
+            print("Failed to analyze dashboard images")
             return None
-            
-        print(f"Successfully processed {len(image_data_list)} images for analysis")
         
-        # Use unified prompt for documentation generation - same for all
-        unified_prompt = create_unified_prompt(len(image_paths) > 1)
+        print("Dashboard analysis complete")
         
-        # Initialize Bedrock client
-        print("Connecting to AWS Bedrock AI...")
-        bedrock = get_bedrock_client()
+        # Save intermediate analysis data for review (silently)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        analysis_filename = f"outputs/agent1_analysis_{timestamp}.json"
         
-        # Prepare messages with all images
-        content_list = image_data_list + [{
-            "type": "text",
-            "text": unified_prompt
-        }]
+        try:
+            # Try to parse as JSON and save formatted
+            import json
+            parsed_data = json.loads(analysis_data)
+            with open(analysis_filename, 'w', encoding='utf-8') as f:
+                json.dump(parsed_data, f, indent=2, ensure_ascii=False)
+        except:
+            # If not valid JSON, save as text
+            with open(analysis_filename, 'w', encoding='utf-8') as f:
+                f.write(analysis_data)
         
-        print(f"Sending {len(image_data_list)} image{'s' if len(image_paths) > 1 else ''} to Bedrock...")
+        # Step 2: Agent 2 - Documentation Creation
+        print("Creating comprehensive documentation...")
+        documentation_text = create_documentation_with_agent2(analysis_data, get_bedrock_client())
         
-        messages = [{
-            "role": "user",
-            "content": content_list
-        }]
+        if not documentation_text:
+            print("Failed to create documentation")
+            return None
         
-        # Unified max_tokens - same for all (removed artificial difference)
-        max_tokens = 8000
+        print("Documentation generation complete")
         
-        body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": max_tokens,
-            "messages": messages,
-            "temperature": 0.1
-        }
-        
-        # Check payload size and warn if too large
-        payload_size = len(str(body))
-        if payload_size > 200000:  # 200KB limit
-            print("Warning: Payload might be too large for Bedrock")
-            print(f"Current size: {payload_size / 1024:.1f}KB")
-            print("Consider using fewer images or smaller files")
-        
-        print("Calling Bedrock API...")
-        # Call Bedrock with vision model
-        response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
-            body=json.dumps(body),
-            contentType='application/json'
-        )
-        
-        # Parse response  
-        response_body = json.loads(response['body'].read())
-        documentation_text = response_body['content'][0]['text']
+        # Step 3: Process and save final documentation
+        print("Finalizing documentation...")
         
         # Remove extra spacing after header tags
         documentation_text = documentation_text.replace('<h2>Objective</h2>\n\n', '<h2>Objective</h2>\n')
         documentation_text = documentation_text.replace('<h2>Objective</h2>\n ', '<h2>Objective</h2>\n')
         documentation_text = documentation_text.replace('<h3>', '\n<h3>')  # Ensure h3 tags have proper spacing
         
-        # Unified filename generation - consistent pattern for all
+        # Generate filename using dashboard name
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Clean dashboard name for filename (remove special characters)
+        clean_name = "".join(c for c in dashboard_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        clean_name = clean_name.replace(' ', '_').replace('-', '_')
+        
         if len(image_paths) > 1:
-            doc_filename = f"outputs/multi_dashboard_howto_{timestamp}.md"
+            doc_filename = f"outputs/{clean_name}_{timestamp}.md"
         else:
-            image_basename = os.path.splitext(os.path.basename(valid_image_paths[0]))[0]
-            doc_filename = f"outputs/dashboard_howto_{image_basename}_{timestamp}.md"
+            image_basename = os.path.splitext(os.path.basename(image_paths[0]))[0]
+            doc_filename = f"outputs/{clean_name}_{image_basename}_{timestamp}.md"
         
         # Ensure outputs and images directories exist
         os.makedirs("outputs", exist_ok=True)
         os.makedirs("outputs/images", exist_ok=True)
         
-        # Copy source images to outputs/images for embedding using centralized utilities
-        copied_files = ImageProcessor.copy_images_to_outputs(valid_image_paths)
-        for dest_path in copied_files:
-            print(f"Copied image: {os.path.basename(dest_path)}")
+        # Copy source images to outputs/images for embedding
+        copied_files = ImageProcessor.copy_images_to_outputs(image_paths)
         
-        # Create clean, well-formatted documentation for Confluence with centered margin and left alignment
-        markdown_filename = doc_filename
-        with open(markdown_filename, 'w', encoding='utf-8') as f:
-            # Centered container with left-aligned text
-            f.write('<div style="text-align: left; max-width: 800px; margin: 0 auto;">\n\n')
-            f.write('<h1 style="font-weight: bold; text-align: left;">Dashboard User Guide</h1>\n\n')
+        # Create final documentation
+        with open(doc_filename, 'w', encoding='utf-8') as f:
+            # Write clean HTML without styling
+            f.write(f'<h1>{dashboard_name}</h1>\n\n')
             
-            # Main documentation content - ensure it's properly formatted
+            # Main documentation content from Agent 2
             f.write(documentation_text)
             f.write('\n\n')
             
-            # Simple metadata footer
-            f.write('<hr style="border: none; border-top: 2px solid #DFE1E6; margin: 40px 0;"/>\n\n')
+            # Metadata footer
+            f.write('<hr/>\n\n')
             f.write(f'<p><strong>Analysis Date:</strong> {datetime.now().strftime("%B %d, %Y at %I:%M %p")}</p>\n')
-            f.write(f'<p><strong>Images Analyzed:</strong> {len(valid_image_paths)} image{"s" if len(valid_image_paths) > 1 else ""}</p>\n')
+            f.write(f'<p><strong>Images Analyzed:</strong> {len(image_paths)} image{"s" if len(image_paths) > 1 else ""}</p>\n')
+            f.write('<p><strong>Analysis Method:</strong> AI-Powered Analysis</p>\n')
             f.write('<p>Generated using AI analysis for GoDaddy BI team</p>\n')
-            f.write('</div>')
         
-        logger.info(f"Dashboard documentation generated: {markdown_filename}")
-        print(f"Markdown documentation saved to: {markdown_filename}")
-        print(f"Ready for Confluence import!")
-        
-        return markdown_filename
+        logger.info(f"Dashboard documentation generated: {doc_filename}")
+        return doc_filename
         
     except Exception as e:
-        logger.error(f"Failed to analyze image{'s' if len(image_paths) > 1 else ''}: {e}")
+        logger.error(f"Analysis failed: {e}")
         print(f"Analysis failed: {e}")
-        
-        # Provide helpful error context
-        if "InvalidClientTokenId" in str(e):
-            print("Your AWS credentials have expired. Please refresh them in Okta.")
-        elif "AccessDenied" in str(e):
-            print("Check your AWS credentials and Bedrock permissions.")
-        elif "NoSuchKey" in str(e):
-            print("Double-check the image file path.")
-        elif "PayloadTooLarge" in str(e):
-            print("Multiple images may be too large. Try with fewer images or smaller files.")
-        elif "ExpiredTokenException" in str(e):
-            print("Credential issue detected. Please refresh your AWS credentials.")
-        else:
-            print("Please verify your AWS credentials and image files.")
-        
         return None
-
-
-
 
 
 def publish_to_confluence(doc_file: str, title: str = None, images: list = None) -> bool:
@@ -318,7 +227,7 @@ def publish_to_confluence(doc_file: str, title: str = None, images: list = None)
     try:
         from utils.confluence_uploader import ConfluenceUploader
         
-        print("Publishing documentation to Confluence...")
+        print("Publishing to Confluence...")
         
         # Read the documentation content
         with open(doc_file, 'r', encoding='utf-8') as f:
@@ -348,16 +257,16 @@ def publish_to_confluence(doc_file: str, title: str = None, images: list = None)
         )
         
         if page_url:
-            print(f"Successfully published to Confluence!")
+            print(f"Successfully published to Confluence")
             print(f"Page URL: {page_url}")
             logger.info(f"Published to Confluence: {page_url}")
             return True
         else:
-            print("Failed to publish to Confluence")
+            print("Failed to publish to Confluence!")
             return False
             
     except ImportError:
-        print("Confluence uploader not available")
+        print("Confluence uploader not available!")
         print("Install confluence requirements or check configuration")
         return False
     except Exception as e:
@@ -403,26 +312,16 @@ def find_recent_images() -> List[str]:
     return [img[0] for img in recent_images[:10]]
 
 
-def upload_dashboard_image():
-    """Unified interactive image upload and analysis (single or multiple images)."""
-    print("QuickSight Dashboard Image Analyzer")
-    print("=" * 50)
+def get_image_paths() -> List[str]:
+    """Get image paths from user input."""
+    print("Image Selection")
     print("Select one or multiple QuickSight dashboard screenshots for AI analysis")
-    print()
     print("Supported formats: PNG, JPG, JPEG, GIF, WebP, BMP")
     print("Maximum file size: 10MB per image")
-    print("AI-powered business insights and recommendations")
-    print("Detailed visualization breakdown and technical assessment")
-    print()
-    print("Tips for best results:")
-    print("   - Capture the full dashboard view")
-    print("   - Include chart titles and legends")
-    print("   - Ensure text is readable")
-    print("   - Use PNG format for best quality")
     print()
     
     recent_images = find_recent_images()
-    selected_images: list[str] = []
+    selected_images: List[str] = []
     
     if recent_images:
         print("Recent image files found:")
@@ -445,7 +344,7 @@ def upload_dashboard_image():
 
             if choice.lower() in ['qq', 'q', 'exit']:
                 print("Goodbye!")
-                return
+                return []
 
             if not choice:
                 print("Please provide a selection")
@@ -503,7 +402,7 @@ def upload_dashboard_image():
             img_path = input("Enter image file path (or 'ff' to finish, 'qq' to quit): ").strip()
             if img_path.lower() in ['qq', 'q', 'exit']:
                 print("Goodbye!")
-                return
+                return []
             if img_path.lower() == 'ff':
                 if len(selected_images) >= 1:
                     break
@@ -518,80 +417,288 @@ def upload_dashboard_image():
             else:
                 print(f"File not found: {img_path}")
     
-    if len(selected_images) == 0:
-        print("No images selected")
-        return
+    return selected_images
+
+
+def validate_documentation_quality(content: str) -> dict:
+    """Validate the quality and completeness of generated documentation."""
+    validation = {
+        'score': 0,
+        'issues': [],
+        'strengths': [],
+        'recommendations': []
+    }
     
-    # Unified workflow for both single and multi-image processing
-    result = analyze_dashboard_images(selected_images)
-
-    if result:
-        print(f"\nAnalysis Complete!")
-        print(f"Successfully analyzed {len(selected_images)} dashboard image{'s' if len(selected_images) > 1 else ''}")
-        print(f"Full report saved to: {result}")
-        print()
-
-        print("Documentation Options:")
-        print("1. Keep documentation local")
-        print("2. Publish to Confluence")
-        print("3. Finish")
-        
-        doc_choice = input("Choose option (1-3): ").strip()
-        
-        if doc_choice == '2':
-            print("Publishing to Confluence...")
-            custom_title = input("Enter custom title (or press Enter for auto-generated): ").strip()
-            title = custom_title if custom_title else None
-            success = publish_to_confluence(result, title, selected_images)
-            if success:
-                print("Complete workflow finished successfully!")
-            else:
-                print("Documentation created but Confluence publishing failed")
-        elif doc_choice == '1':
-            print("Documentation saved locally")
-        else:
-            print("Skipping documentation")
-
-        print(f"\nAnalysis workflow complete!")
-        another = input("Analyze more images? (y/n): ").strip().lower()
-        if another in ['y', 'yes']:
-            print()
-            upload_dashboard_image()
-        else:
-            print("Thank you for using QuickSight Dashboard Image Analyzer!")
+    # Check for required sections
+    required_sections = [
+        'Executive Summary', 'Objective', 'Dashboard Views', 
+        'Detailed Overview', 'Dashboard Controls', 'How to Use',
+        'Key Insights & Recommendations'
+    ]
+    
+    missing_sections = []
+    for section in required_sections:
+        if section not in content:
+            missing_sections.append(section)
+    
+    if missing_sections:
+        validation['issues'].append(f"Missing required sections: {', '.join(missing_sections)}")
     else:
-        print("Documentation generation failed")
+        validation['strengths'].append("All required sections present")
+        validation['score'] += 20
+    
+    # Check content length
+    content_length = len(content)
+    if content_length < 2000:
+        validation['issues'].append("Documentation appears too short (less than 2000 characters)")
+        validation['recommendations'].append("Consider adding more detailed explanations and examples")
+    elif content_length > 15000:
+        validation['strengths'].append("Documentation is comprehensive and detailed")
+        validation['score'] += 15
+    else:
+        validation['strengths'].append("Documentation has appropriate length")
+        validation['score'] += 10
+    
+    # Check for metrics and data
+    if 'Metrics Reported' in content:
+        validation['strengths'].append("Metrics section present")
+        validation['score'] += 15
+    else:
+        validation['issues'].append("Metrics section missing")
+    
+    # Check for interactive elements
+    if 'Interactive Controls' in content or 'Drill-Down' in content:
+        validation['strengths'].append("Interactive controls documented")
+        validation['score'] += 15
+    else:
+        validation['issues'].append("Interactive controls documentation missing")
+    
+    # Check for business context
+    business_keywords = ['business', 'stakeholder', 'decision', 'performance', 'KPI', 'metric']
+    business_context_count = sum(1 for keyword in business_keywords if keyword.lower() in content.lower())
+    if business_context_count >= 3:
+        validation['strengths'].append("Good business context coverage")
+        validation['score'] += 15
+    else:
+        validation['issues'].append("Limited business context")
+        validation['recommendations'].append("Add more business context and stakeholder value")
+    
+    # Check for actionable content
+    action_keywords = ['how to', 'step', 'action', 'recommendation', 'insight']
+    action_count = sum(1 for keyword in action_keywords if keyword.lower() in content.lower())
+    if action_count >= 2:
+        validation['strengths'].append("Good actionable content")
+        validation['score'] += 10
+    else:
+        validation['issues'].append("Limited actionable content")
+        validation['recommendations'].append("Include more specific steps and recommendations")
+    
+    # Check HTML formatting
+    if '<h2' in content and '<h3' in content and '<strong>' in content:
+        validation['strengths'].append("Proper HTML formatting")
+        validation['score'] += 10
+    else:
+        validation['issues'].append("HTML formatting issues")
+        validation['recommendations'].append("Ensure proper HTML structure")
+    
+    # Final score calculation
+    validation['score'] = min(100, validation['score'])
+    
+    # Add overall assessment
+    if validation['score'] >= 80:
+        validation['assessment'] = "Excellent"
+    elif validation['score'] >= 60:
+        validation['assessment'] = "Good"
+    elif validation['score'] >= 40:
+        validation['assessment'] = "Fair"
+    else:
+        validation['assessment'] = "Needs Improvement"
+    
+    return validation
 
 
+def print_documentation_feedback(validation: dict):
+    """Print feedback about the generated documentation quality."""
+    print()
+    print("Documentation Quality Assessment")
+    print("=" * 40)
+    print(f"Overall Score: {validation['score']}/100 ({validation['assessment']})")
+    print()
+    
+    if validation['strengths']:
+        print("Strengths:")
+        for strength in validation['strengths']:
+            print(f"   • {strength}")
+        print()
+    
+    if validation['issues']:
+        print("Areas for Improvement:")
+        for issue in validation['issues']:
+            print(f"   • {issue}")
+        print()
+    
+    if validation['recommendations']:
+        print("Recommendations:")
+        for rec in validation['recommendations']:
+            print(f"   • {rec}")
+        print()
+    
+    if validation['score'] >= 80:
+        print("Excellent documentation quality! Ready for stakeholder use.")
+    elif validation['score'] >= 60:
+        print("Good documentation quality. Consider minor improvements before sharing.")
+    else:
+        print("Documentation needs improvement. Review and enhance before sharing with stakeholders.")
 
 
 def main():
-    """Main application entry point."""
-    logger.info("Starting QuickSight Dashboard Image Analyzer")
-    
-    print("\n" + "="*65)
+    """Main function to run the dashboard analyzer."""
     print("QuickSight Dashboard Image Analyzer")
-    print("="*65)
-    print("Upload and analyze QuickSight dashboard screenshots with AI")
-    print()
-    print("Features:")
-    print("   - AI-powered dashboard analysis")
-    print("   - Business insights and recommendations") 
-    print("   - Visualization breakdown and assessment")
-    print("   - Technical evaluation and improvement suggestions")
-    print("   - Detailed markdown reports")
+    print("=" * 50)
+    print("AI-powered dashboard documentation generator for GoDaddy BI team")
     print()
     
     try:
-        upload_dashboard_image()
+        # Get image paths first (before AWS authentication to improve UI responsiveness)
+        print("Getting image paths...")
+        image_paths = get_image_paths()
+        if not image_paths:
+            print("No images selected. Exiting.")
+            return
+            
+        if len(image_paths) > 10:
+            print("Warning: You've selected more than 10 images. This may take a while and could exceed API limits.")
+            continue_choice = get_user_input("Continue anyway? (y/n): ", ['y', 'yes', 'n', 'no'])
+            if continue_choice.lower() in ['n', 'no']:
+                print("Image selection cancelled.")
+                return
+        
+        print(f"Selected {len(image_paths)} image{'s' if len(image_paths) > 1 else ''} for analysis")
+        print()
+        
+        # Get custom dashboard name
+        print("Dashboard Naming")
+        print("Enter a descriptive name for your dashboard (e.g., 'Sales Performance Dashboard', 'Customer Analytics')")
+        print("Or press Enter to use the default name")
+        print()
+        
+        dashboard_name = get_user_input("Dashboard name: ", default="Dashboard Analysis")
+        print(f"Dashboard name: {dashboard_name}")
+        print()
+        
+        # Validate image files before processing
+        print("Validating image files...")
+        valid_images = []
+        for img_path in image_paths:
+            if os.path.exists(img_path):
+                file_size = os.path.getsize(img_path) / (1024 * 1024)  # MB
+                if file_size > 10:
+                    print(f"Warning: {os.path.basename(img_path)} is {file_size:.1f}MB (exceeds 10MB limit)")
+                    continue_choice = get_user_input("Continue with this image? (y/n): ", ['y', 'yes', 'n', 'no'])
+                    if continue_choice.lower() in ['n', 'no']:
+                        continue
+                valid_images.append(img_path)
+                print(f"{os.path.basename(img_path)} - {file_size:.1f}MB")
+            else:
+                print(f"File not found: {img_path}")
+        
+        if not valid_images:
+            print("No valid images found. Please check your file paths.")
+            return
+        
+        image_paths = valid_images
+        print(f"{len(image_paths)} valid images ready for analysis")
+        print()
+        
+        # Now check AWS configuration (lazy loading to improve UI responsiveness)
+        print("Checking AWS configuration...")
+        bedrock_client = get_bedrock_client_lazy()
+        if not bedrock_client:
+            print("AWS Bedrock configuration failed. Please check your AWS credentials and configuration.")
+            return
+        print("AWS Bedrock configured successfully")
+        print()
+        
+        # Start analysis
+        print("Starting AI analysis...")
+        print("This may take a few minutes depending on the number and size of images.")
+        print()
+        
+        print("Phase 1: Analyzing dashboard images...")
+        print("   - Extracting metrics and interactive elements...")
+        print("   - Identifying chart types and data patterns...")
+        print("   - Mapping business context and purpose...")
+        print()
+        
+        result = analyze_dashboard_images_multi_agent(image_paths, dashboard_name)
+        
+        if result:
+            print("Analysis complete!")
+            print(f"Documentation saved to: {result}")
+            print()
+            
+            # Validate documentation quality
+            try:
+                with open(result, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                validation = validate_documentation_quality(content)
+                print_documentation_feedback(validation)
+            except Exception as e:
+                print(f"Could not validate documentation quality: {e}")
+            
+            # Offer Confluence upload
+            upload_choice = get_user_input("Would you like to upload this documentation to Confluence? (y/n): ", ['y', 'yes', 'n', 'no'])
+            if upload_choice.lower() in ['y', 'yes']:
+                print()
+                print("Uploading to Confluence...")
+                
+                try:
+                    uploader = ConfluenceUploader()
+                    print("Testing Confluence Cloud connection...")
+                    
+                    if not uploader.test_connection():
+                        print("Confluence connection failed. Please check your configuration.")
+                    else:
+                        print("Confluence connection successful!")
+                        
+                        # Read the generated documentation
+                        with open(result, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        
+                        # Create page title from dashboard name
+                        page_title = dashboard_name
+                        
+                        # Upload content with images
+                        page_id = uploader.upload_content(page_title, content, images=image_paths)
+                        
+                        if page_id:
+                            print(f"Successfully uploaded to Confluence!")
+                            print(f"Page ID: {page_id}")
+                            print(f"View page: {uploader.confluence_url}/pages/viewpage.action?pageId={page_id.split('/')[-1]}")
+                        else:
+                            print("Failed to upload to Confluence")
+                            
+                except Exception as e:
+                    print(f"Error uploading to Confluence: {e}")
+                    print("You can still manually import the documentation file to Confluence.")
+            
+            print()
+            print("Workflow complete! Thank you for using the Dashboard Analyzer.")
+            
+        else:
+            print("Analysis failed. Please check your images and try again.")
+            print("Common issues:")
+            print("   - Image files are corrupted or in unsupported format")
+            print("   - AWS Bedrock service is unavailable")
+            print("   - Network connectivity issues")
+            
     except KeyboardInterrupt:
-        print("\n\nGoodbye!")
+        print("\n\nProcess interrupted. Goodbye!")
     except Exception as e:
-        logger.error(f"Application error: {e}")
-        print(f"\n Application error: {e}")
-        print("Please check your AWS credentials and try again.")
-    finally:
-        logger.info("Application completed")
+        print(f"\nUnexpected error: {e}")
+        print("Please check your configuration and try again.")
+        print("If the problem persists, check the logs for more details.")
+        logger.error(f"Unexpected error in main: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

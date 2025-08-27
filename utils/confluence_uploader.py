@@ -55,10 +55,13 @@ class ConfluenceUploader:
             'Authorization': f'Basic {auth_b64}',
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-Atlassian-Token': 'no-check'
+            'X-Atlassian-Token': 'no-check',
+            # Force Cloud Editor usage
+            'X-Editor-Version': '2',
+            'X-Content-Appearance': 'fixed-width'
         }
         
-        # API base URL - ensure we're using the Confluence Cloud wiki endpoint
+        # API base URL - ensure we're using the Confluence Cloud wiki endpoint consistently
         if self.confluence_url and '/wiki' not in self.confluence_url:
             wiki_url = urljoin(self.confluence_url, '/wiki/')
         elif self.confluence_url:
@@ -141,6 +144,33 @@ class ConfluenceUploader:
         # Dashboard analyzer always provides clean HTML, so no structure manipulation needed
         return html_content
     
+    def _get_cloud_editor_metadata(self) -> dict:
+        """Get standardized Cloud Editor metadata properties."""
+        return {
+            "properties": {
+                # Core Cloud Editor properties
+                "content-appearance": {"value": "fixed-width"},
+                "editor": {"value": "v2"},
+                "editor-version": {"value": "2"},
+                
+                # Draft and published versions
+                "content-appearance-draft": {"value": "fixed-width"},
+                "content-appearance-published": {"value": "fixed-width"},
+                "editor-draft": {"value": "v2"},
+                "editor-published": {"value": "v2"},
+                "editor-version-draft": {"value": "2"},
+                "editor-version-published": {"value": "2"},
+                
+                # Content type and status
+                "content-type": {"value": "page"},
+                "content-type-draft": {"value": "page"},
+                "content-type-published": {"value": "page"},
+                "status": {"value": "current"},
+                "status-draft": {"value": "current"},
+                "status-published": {"value": "current"}
+            }
+        }
+
     def _prepare_page_data(self, title: str, content: str, page_id: str = None, version: int = None) -> dict:
         """Prepare page data for Confluence Cloud API requests."""
         # Debug: Log what type of content we're processing
@@ -157,23 +187,15 @@ class ConfluenceUploader:
             logger.info("Processing other content types for Confluence Cloud editor")
             storage_content = self._post_process_html_for_confluence(content)
         
+        # Ensure Cloud Editor compatibility
+        storage_content = self._ensure_cloud_editor_compatibility(storage_content)
+        
         # Debug: Log final storage content
         logger.info(f"Final storage content for Confluence Cloud editor: {storage_content[:200]}...")
         
         # Force Cloud Editor usage with specific metadata properties
         logger.info("Forcing Confluence Cloud Editor usage with updated metadata structure")
-        
-        # Add CSS styling to ensure fixed-width for both title and content
-        # This is needed because metadata properties only affect certain aspects
-        if storage_content.startswith('<div'):
-            # Content already has a wrapper div, add CSS to it
-            storage_content = storage_content.replace(
-                '<div style="text-align: left; max-width: 800px; margin: 0 auto;">',
-                '<div style="text-align: left; max-width: 800px; margin: 0 auto; font-family: \'Monaco\', \'Menlo\', \'Ubuntu Mono\', monospace; font-size: 14px; line-height: 1.6;">'
-            )
-        else:
-            # Wrap content in a styled div for fixed-width appearance
-            storage_content = f'<div style="text-align: left; max-width: 800px; margin: 0 auto; font-family: \'Monaco\', \'Menlo\', \'Ubuntu Mono\', monospace; font-size: 14px; line-height: 1.6;">{storage_content}</div>'
+        logger.info("Fixed-width appearance enforced for Cloud Editor compatibility")
         
         page_data = {
             'type': 'page',
@@ -187,37 +209,7 @@ class ConfluenceUploader:
                     'representation': 'storage'
                 }
             },
-            'metadata': {
-                'properties': {
-                    # Force Cloud Editor - this is the key property
-                    'editor': {
-                        'value': 'fabric'
-                    },
-                    # Content appearance settings for Cloud Editor
-                    'content-appearance-draft': {
-                        'value': 'fixed-width'
-                    },
-                    'content-appearance-published': {
-                        'value': 'fixed-width'
-                    },
-                    'content-type': {
-                        'value': 'page'
-                    },
-                    'content-appearance': {
-                        'value': 'fixed-width'
-                    },
-                    # Title appearance settings
-                    'title-appearance': {
-                        'value': 'fixed-width'
-                    },
-                    'title-appearance-draft': {
-                        'value': 'fixed-width'
-                    },
-                    'title-appearance-published': {
-                        'value': 'fixed-width'
-                    }
-                }
-            }
+            'metadata': self._get_cloud_editor_metadata()
         }
         
         # Add ID and version for updates
@@ -228,16 +220,20 @@ class ConfluenceUploader:
         
         return page_data
     
-    def _create_page_cloud_api(self, title: str, content: str) -> Optional[str]:
-        """Create a Confluence Cloud page using modern REST API for cloud editor support."""
+
+    
+    def _create_page_with_cloud_editor_v2(self, title: str, content: str) -> Optional[str]:
+        """Create a Confluence Cloud page using the latest API approach for Cloud Editor."""
         try:
-            # Use the newer Confluence Cloud API v2 for better Cloud Editor support
+            # Use the standard Confluence Cloud API endpoint
             url = f"{self.confluence_url}/wiki/rest/api/content"
             
-            # Force Cloud Editor usage with correct metadata properties
-            logger.info("Forcing Confluence Cloud Editor usage with updated metadata structure")
+            logger.info("Using Confluence Cloud API with enhanced Cloud Editor forcing")
             
-            # Create page data optimized for Confluence Cloud editor
+            # Ensure Cloud Editor compatibility
+            storage_content = self._ensure_cloud_editor_compatibility(content)
+            
+            # Create page data with enhanced Cloud Editor properties
             create_page_data = {
                 "type": "page",
                 "title": title,
@@ -247,66 +243,69 @@ class ConfluenceUploader:
                 },
                 "body": {
                     "storage": {
-                        "value": content,
+                        "value": storage_content,
                         "representation": "storage"
                     }
                 },
-                "metadata": {
-                    "properties": {
-                        # Force Cloud Editor - this is the key property
-                        "editor": {
-                            "value": "fabric"
-                        },
-                        # Content appearance settings for Cloud Editor
-                        "content-appearance-draft": {
-                            "value": "fixed-width"
-                        },
-                        "content-appearance-published": {
-                            "value": "fixed-width"
-                        },
-                        "content-type": {
-                            "value": "page"
-                        },
-                        "content-appearance": {
-                            "value": "fixed-width"
-                        },
-                        # Title appearance settings
-                        "title-appearance": {
-                            "value": "fixed-width"
-                        },
-                        "title-appearance-draft": {
-                            "value": "fixed-width"
-                        },
-                        "title-appearance-published": {
-                            "value": "fixed-width"
-                        }
-                    }
-                }
+                "metadata": self._get_cloud_editor_metadata()
             }
             
-            logger.info("Making Confluence Cloud API v2 page creation request for Cloud Editor")
-            logger.info(f"Metadata properties: {create_page_data['metadata']}")
-            logger.info(f"Full request data: {json.dumps(create_page_data, indent=2)}")
+            logger.info("Making enhanced Confluence Cloud API request for Cloud Editor")
+            logger.info(f"Enhanced metadata properties: {create_page_data['metadata']}")
             
-            response = requests.post(url, headers=self.headers, data=json.dumps(create_page_data))
+            # Try with enhanced headers
+            enhanced_headers = self.headers.copy()
+            enhanced_headers.update({
+                'X-Editor-Version': '2',
+                'X-Content-Appearance': 'fixed-width',
+                'X-Force-Cloud-Editor': 'true'
+            })
+            
+            response = requests.post(url, headers=enhanced_headers, data=json.dumps(create_page_data))
             
             if response.status_code == 200:
                 result = response.json()
                 page_url = urljoin(self.confluence_url, result['_links']['webui'])
-                logger.info(f"Page created successfully using Confluence Cloud API v2: {title}")
-                logger.info(f"Response metadata: {result.get('metadata', 'No metadata in response')}")
+                logger.info(f"Page created successfully using enhanced Confluence Cloud API: {title}")
+                
+                # Verify Cloud Editor usage
+                page_id = result.get('id')
+                if page_id:
+                    self._verify_cloud_editor_usage(page_id)
+                
                 return page_url
             else:
-                logger.error(f"Failed to create page using Confluence Cloud API v2: {response.status_code} - {response.text}")
+                logger.error(f"Enhanced API failed: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            logger.error(f"Error creating page using Confluence Cloud API v2: {e}")
+            logger.error(f"Error in enhanced Cloud Editor creation: {e}")
             return None
+    
+
     
     def _make_page_request(self, method: str, url: str, page_data: dict, title: str) -> Optional[str]:
         """Make HTTP request to Confluence Cloud API for page operations."""
         try:
+            # Ensure Cloud Editor metadata is preserved in the page data
+            if 'metadata' not in page_data:
+                page_data['metadata'] = {}
+            if 'properties' not in page_data['metadata']:
+                page_data['metadata']['properties'] = {}
+            
+            # Force Cloud Editor properties if not already present
+            cloud_editor_props = {
+                'content-appearance': {'value': 'fixed-width'},
+                'editor': {'value': 'v2'},
+                'editor-version': {'value': '2'}
+            }
+            
+            for prop, value in cloud_editor_props.items():
+                if prop not in page_data['metadata']['properties']:
+                    page_data['metadata']['properties'][prop] = value
+            
+            logger.info(f"Making {method} request with Cloud Editor metadata preserved")
+            
             if method.upper() == 'POST':
                 response = requests.post(url, headers=self.headers, data=json.dumps(page_data), timeout=30)
             elif method.upper() == 'PUT':
@@ -318,6 +317,13 @@ class ConfluenceUploader:
                 result = response.json()
                 page_url = urljoin(self.confluence_url, result['_links']['webui'])
                 logger.info(f"Page {method.lower()}ed successfully using Confluence Cloud API: {title}")
+                
+                # Verify Cloud Editor usage for updates
+                if method.upper() == 'PUT':
+                    page_id = result.get('id')
+                    if page_id:
+                        self._verify_cloud_editor_usage(page_id)
+                
                 return page_url
             else:
                 logger.error(f"Failed to {method.lower()} page using Confluence Cloud API: {response.status_code} - {response.text}")
@@ -331,13 +337,32 @@ class ConfluenceUploader:
         """Create a new Confluence Cloud page using modern REST API for cloud editor support."""
         logger.info("Using Confluence Cloud REST API directly for cloud editor support")
         
-        # Use the Confluence Cloud API approach for better cloud editor control
+        # Use the enhanced Cloud Editor approach
         try:
-            return self._create_page_cloud_api(title, content)
+            logger.info("Attempting enhanced Cloud Editor creation...")
+            page_url = self._create_page_with_cloud_editor_v2(title, content)
+            if page_url:
+                logger.info("Enhanced Cloud Editor creation successful!")
+                return page_url
+            else:
+                logger.info("Enhanced approach failed, falling back to standard REST API...")
         except Exception as e:
-            logger.warning(f"Confluence Cloud API approach failed, falling back to standard REST API: {e}")
+            logger.warning(f"Enhanced Cloud Editor approach failed: {e}")
+        
+        # Fallback to standard REST API
+        try:
             page_data = self._prepare_page_data(title, content)
-            return self._make_page_request('POST', urljoin(self.api_base, 'content'), page_data, title)
+            page_url = self._make_page_request('POST', urljoin(self.api_base, 'content'), page_data, title)
+            
+            # Verify Cloud Editor usage for fallback method
+            if page_url and '/pages/' in page_url:
+                page_id = page_url.split('/pages/')[-1].split('/')[0]
+                self._verify_cloud_editor_usage(page_id)
+            
+            return page_url
+        except Exception as e:
+            logger.error(f"Failed to create page: {e}")
+            return None
     
     def update_page(self, page_id: str, title: str, content: str, version: int) -> Optional[str]:
         """Update an existing Confluence Cloud page using modern REST API for cloud editor support."""
@@ -347,56 +372,147 @@ class ConfluenceUploader:
         page_data = self._prepare_page_data(title, content, page_id, version)
         return self._make_page_request('PUT', urljoin(self.api_base, f'content/{page_id}'), page_data, title)
     
-    def upload_image(self, image_path: str, page_id: str) -> Optional[str]:
-        """Upload an image as an attachment to a Confluence Cloud page."""
+    def _update_page_with_cloud_editor(self, page_id: str, title: str, content: str, version: int) -> Optional[str]:
+        """Update a Confluence Cloud page while preserving Cloud Editor settings."""
         try:
-            # Validate image using centralized utilities
-            is_valid, message = ImageProcessor.validate_image_file(image_path)
-            if not is_valid:
-                logger.warning(f"Skipping invalid image: {message}")
-                return None
+            logger.info(f"Updating page {page_id} with Cloud Editor preservation")
             
-            # Get content type using centralized utilities
-            content_type = ImageProcessor.get_media_type(image_path)
+            # Use the enhanced page data preparation
+            page_data = self._prepare_page_data(title, content, page_id, version)
             
-            # Prepare file for upload
-            filename = os.path.basename(image_path)
-            
-            with open(image_path, 'rb') as f:
-                files = {
-                    'file': (filename, f, content_type)
-                }
-                
-                headers = {
-                    'X-Atlassian-Token': 'no-check'
-                }
-                
-                url = f"{self.api_base}content/{page_id}/child/attachment"
-                
-                response = requests.post(
-                    url,
-                    files=files,
-                    headers=headers,
-                    auth=(self.username, self.api_token),
-                    timeout=30
+            # Ensure Cloud Editor compatibility
+            if 'body' in page_data and 'storage' in page_data['body']:
+                page_data['body']['storage']['value'] = self._ensure_cloud_editor_compatibility(
+                    page_data['body']['storage']['value']
                 )
+            
+            # Force Cloud Editor metadata
+            if 'metadata' not in page_data:
+                page_data['metadata'] = {}
+            if 'properties' not in page_data['metadata']:
+                page_data['metadata']['properties'] = {}
+            
+            # Set Cloud Editor properties
+            cloud_editor_props = {
+                'content-appearance': {'value': 'fixed-width'},
+                'editor': {'value': 'v2'},
+                'editor-version': {'value': '2'},
+                'content-appearance-draft': {'value': 'fixed-width'},
+                'editor-draft': {'value': 'v2'},
+                'editor-version-draft': {'value': '2'},
+                'content-appearance-published': {'value': 'fixed-width'},
+                'editor-published': {'value': 'v2'},
+                'editor-version-published': {'value': '2'}
+            }
+            
+            for prop, value in cloud_editor_props.items():
+                page_data['metadata']['properties'][prop] = value
+            
+            logger.info("Updated page data with Cloud Editor metadata")
+            
+            # Make the update request
+            url = f"{self.confluence_url}/wiki/rest/api/content/{page_id}"
+            response = requests.put(url, headers=self.headers, data=json.dumps(page_data), timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                page_url = urljoin(self.confluence_url, result['_links']['webui'])
+                logger.info(f"Page updated successfully with Cloud Editor preservation: {title}")
                 
-                if response.status_code in [200, 201]:
-                    result = response.json()
-                    if 'results' in result and len(result['results']) > 0:
-                        attachment_id = result['results'][0]['id']
-                        # Return the attachment URL for embedding
-                        return f"/wiki/download/attachments/{page_id}/{filename}"
-                    return None
-                else:
-                    logger.error(f"Failed to upload image to Confluence Cloud: {response.status_code} - {response.text}")
-                    return None
-                    
+                # Verify Cloud Editor usage
+                self._verify_cloud_editor_usage(page_id)
+                
+                return page_url
+            else:
+                logger.error(f"Failed to update page with Cloud Editor: {response.status_code} - {response.text}")
+                return None
+                
         except Exception as e:
-            logger.error(f"Error uploading image {image_path} to Confluence Cloud: {e}")
+            logger.error(f"Error updating page with Cloud Editor: {e}")
             return None
+    
+    def upload_image(self, image_path: str, page_id: str, max_retries: int = 3) -> Optional[str]:
+        """Upload an image as an attachment to a Confluence Cloud page with retry logic."""
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"Uploading image: {os.path.basename(image_path)} to page: {page_id} (attempt {attempt + 1}/{max_retries})")
+                
+                # Validate image using centralized utilities
+                is_valid, message = ImageProcessor.validate_image_file(image_path)
+                if not is_valid:
+                    logger.warning(f"Skipping invalid image: {message}")
+                    return None
+                
+                # Get content type using centralized utilities
+                content_type = ImageProcessor.get_media_type(image_path)
+                filename = os.path.basename(image_path)
+                
+                with open(image_path, 'rb') as f:
+                    files = {
+                        'file': (filename, f, content_type)
+                    }
+                    
+                    headers = {
+                        'X-Atlassian-Token': 'no-check'
+                    }
+                    
+                    url = f"{self.api_base}content/{page_id}/child/attachment"
+                    
+                    # Increased timeout for image uploads (60 seconds)
+                    response = requests.post(
+                        url,
+                        files=files,
+                        headers=headers,
+                        auth=(self.username, self.api_token),
+                        timeout=60
+                    )
+                    
+                    if response.status_code in [200, 201]:
+                        result = response.json()
+                        if 'results' in result and len(result['results']) > 0:
+                            attachment_id = result['results'][0]['id']
+                            # Return the attachment URL for embedding
+                            attachment_url = f"/wiki/download/attachments/{page_id}/{filename}"
+                            logger.info(f"Image uploaded successfully: {filename}")
+                            return attachment_url
+                        else:
+                            logger.error(f"No results in upload response for: {filename}")
+                            if attempt < max_retries - 1:
+                                logger.info(f"Retrying upload in 2 seconds...")
+                                import time
+                                time.sleep(2)
+                                continue
+                            return None
+                    else:
+                        logger.error(f"Failed to upload image {filename}: {response.status_code} - {response.text}")
+                        if attempt < max_retries - 1:
+                            logger.info(f"Retrying upload in 2 seconds...")
+                            import time
+                            time.sleep(2)
+                            continue
+                        return None
+                        
+            except requests.exceptions.Timeout:
+                logger.error(f"Image upload timeout for {os.path.basename(image_path)} - attempt {attempt + 1}/{max_retries}")
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying upload in 2 seconds...")
+                    import time
+                    time.sleep(2)
+                    continue
+                return None
+            except Exception as e:
+                logger.error(f"Error uploading image {os.path.basename(image_path)} (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying upload in 2 seconds...")
+                    import time
+                    time.sleep(2)
+                    continue
+                return None
+        
+        logger.error(f"Failed to upload image {os.path.basename(image_path)} after {max_retries} attempts")
+        return None
 
-    def upload_content(self, title: str, content: str, content_type: str = 'markdown', images: list = None) -> Optional[str]:
+    def upload_content(self, title: str, content: str, content_type: str = None, images: list = None) -> Optional[str]:
         """Upload or update content to Confluence Cloud with embedded images using cloud editor."""
         if not all([self.confluence_url, self.username, self.api_token, self.space_key]):
             print("Confluence Cloud not properly configured")
@@ -411,26 +527,49 @@ class ConfluenceUploader:
             
             print(f"Processing content for Confluence Cloud editor: {title}")
             
-            # For new pages, we need to create the page first to get an ID for image uploads
             # Check if page already exists
             existing_page = self.find_page_by_title(title)
             
             if existing_page:
                 page_id = existing_page['id']
-                print(f"Updating existing page with Confluence Cloud editor: {title}")
+                print(f"Found existing page: {title} (ID: {page_id})")
+                print("⚠️  Forcing Cloud Editor usage by recreating page...")
+                
+                # Delete existing page to force Cloud Editor usage
+                try:
+                    delete_url = urljoin(self.api_base, f'content/{page_id}')
+                    delete_response = requests.delete(delete_url, headers=self.headers)
+                    if delete_response.status_code == 204:
+                        print(f"✅ Existing page deleted successfully")
+                    else:
+                        print(f"⚠️  Could not delete existing page: {delete_response.status_code}")
+                        # Continue with update if deletion fails
+                        print(f"Updating existing page with Confluence Cloud editor: {title}")
+                        page_url = self._update_page_with_cloud_editor(page_id, title, content, existing_page.get('version', {}).get('number', 1))
+                        if page_url:
+                            return page_url
+                        else:
+                            return None
+                except Exception as e:
+                    print(f"⚠️  Error deleting page: {e}")
+                    # Continue with update if deletion fails
+                    print(f"Updating existing page with Confluence Cloud editor: {title}")
+                    page_url = self._update_page_with_cloud_editor(page_id, title, content, existing_page.get('version', {}).get('number', 1))
+                    if page_url:
+                        return page_url
+                    else:
+                        return None
+            
+            # Create new page with Cloud Editor (either fresh or after deletion)
+            print(f"Creating new page with Confluence Cloud editor: {title}")
+            page_url = self.create_page(title, content)
+            if page_url and '/pages/' in page_url:
+                page_id = page_url.split('/pages/')[-1].split('/')[0]
             else:
-                print(f"Creating new page with Confluence Cloud editor: {title}")
-                # Create page with initial content
-                page_url = self.create_page(title, content)
-                if page_url and '/pages/' in page_url:
-                    page_id = page_url.split('/pages/')[-1].split('/')[0]
-                else:
-                    return None
+                return None
             
             # Upload images and get their attachment URLs
             image_embeds = []
-            print(f"DEBUG: images parameter: {images}")
-            print(f"DEBUG: page_id: {page_id}")
             if images and page_id:
                 print(f"Uploading {len(images)} images to Confluence Cloud...")
                 for i, image_path in enumerate(images, 1):
@@ -438,6 +577,10 @@ class ConfluenceUploader:
                     cleaned_path = os.path.expanduser(image_path.strip().strip('"').strip("'"))
                     
                     if os.path.exists(cleaned_path):
+                        # Optimize image if it's too large
+                        optimized_path = self._optimize_image_for_upload(cleaned_path)
+                        is_optimized = optimized_path != cleaned_path
+                        
                         # Create unique filename to avoid conflicts
                         original_filename = os.path.basename(cleaned_path)
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -448,7 +591,7 @@ class ConfluenceUploader:
                         import shutil
                         
                         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(original_filename)[1]) as temp_file:
-                            shutil.copy2(cleaned_path, temp_file.name)
+                            shutil.copy2(optimized_path, temp_file.name)
                             temp_path = temp_file.name
                         
                         try:
@@ -456,86 +599,65 @@ class ConfluenceUploader:
                             image_url = self.upload_image(temp_path, page_id)
                             if image_url:
                                 print(f"Uploaded to Confluence Cloud: {original_filename}")
-                                print(f"Image URL: {image_url}")
-                                print(f"Unique filename: {unique_filename}")
+                                if is_optimized:
+                                    print(f"  → Image was optimized for faster upload")
                                 
                                 # Extract the actual filename from the image URL
                                 actual_filename = image_url.split('/')[-1]
-                                print(f"Actual uploaded filename: {actual_filename}")
                                 
                                 # Create Confluence Cloud image macro for embedding using actual filename
                                 image_embed = f'<ac:image ac:width="800"><ri:attachment ri:filename="{actual_filename}" /></ac:image>'
-                                print(f"Image embed macro: {image_embed}")
                                 image_embeds.append({
                                     'section': f"**Dashboard View {i}**",
                                     'embed': image_embed,
                                     'filename': actual_filename,
-                                    'original_name': original_filename  # Add original filename for better naming
+                                    'original_name': original_filename
                                 })
                             else:
                                 print(f"Failed to upload to Confluence Cloud: {original_filename}")
                         finally:
-                            # Clean up temporary file
+                            # Clean up temporary files
                             if os.path.exists(temp_path):
                                 os.unlink(temp_path)
+                            if is_optimized and os.path.exists(optimized_path):
+                                os.unlink(optimized_path)
                     else:
                         print(f"Image not found: {cleaned_path}")
-                        # Try to give more helpful information
-                        if os.path.exists(image_path):
-                            print(f"Note: Original path exists: {image_path}")
-                        else:
-                            print(f"Note: Original path also doesn't exist: {image_path}")
             
             # Embed images into content if we have them
-            print(f"DEBUG: image_embeds count: {len(image_embeds) if image_embeds else 0}")
             if image_embeds:
-                print(f"DEBUG: About to embed {len(image_embeds)} images")
-                print(f"DEBUG: First image embed: {image_embeds[0] if image_embeds else 'None'}")
-                enhanced_content = self._embed_images_in_content(content, image_embeds)
-                print(f"DEBUG: Content length after embedding: {len(enhanced_content)}")
+                # Add image embeds to content
+                final_content = self._embed_images_in_content(content, image_embeds)
+                
+                # Update the page with embedded images
+                print("Updating page with embedded images...")
+                print("Using Cloud Editor update method to preserve editor settings...")
+                
+                # Use our Cloud Editor update method to preserve editor settings
+                page_url = self._update_page_with_cloud_editor(page_id, title, final_content, 1)
+                if page_url:
+                    print("✅ Page updated with embedded images and Cloud Editor preservation")
+                    return page_url
+                else:
+                    print("❌ Failed to update page with Cloud Editor preservation")
+                    return None
             else:
-                print("DEBUG: No images to embed")
-                enhanced_content = content
-            
-            # Update page with embedded images
-            if existing_page:
-                page_url = self.update_page(
-                    page_id,
-                    title, 
-                    enhanced_content,
-                    existing_page['version']['number']
-                )
-            else:
-                # Update the page we just created with image-embedded content
-                temp_page = self.find_page_by_title(title)
-                if temp_page:
-                    page_url = self.update_page(
-                        page_id,
-                        title,
-                        enhanced_content,
-                        temp_page['version']['number']
-                    )
-            
-            return page_url
-            
+                # No images to embed, return the page URL
+                return page_url
+                
         except Exception as e:
-            logger.error(f"Upload to Confluence Cloud failed: {e}")
-            print(f"Upload to Confluence Cloud failed: {e}")
+            logger.error(f"Error in upload_content: {e}")
+            print(f"❌ Error uploading content: {e}")
             return None
     
     def _embed_images_in_content(self, content: str, image_embeds: list) -> str:
-        """Embed images into the content at the very end."""
+        """Embed images into the content at the very end with proper formatting."""
         try:
-            print(f"DEBUG: _embed_images_in_content called with {len(image_embeds)} images")
-            print(f"DEBUG: Content starts with: {content[:100]}...")
-            
-            # Always add images at the very end
             if image_embeds:
-                # Simply append images at the end of the content
-                insert_point = content + '\n\n  <h2>Dashboard Screenshots</h2>\n\n'
-                print(f"DEBUG: Added Dashboard Screenshots header")
+                # Add a clear section header with proper spacing
+                insert_point = content + '\n\n<h2 style="margin-top: 2em; padding-top: 1em; border-top: 2px solid #dfe1e6;">Dashboard Screenshots</h2>\n\n'
                 
-                # Add each image with simple formatting
+                # Add each image with improved formatting
                 for j, img_info in enumerate(image_embeds, 1):
                     # Use original filename for better naming, fallback to actual filename if needed
                     display_name = img_info.get('original_name', img_info['filename'])
@@ -544,25 +666,280 @@ class ConfluenceUploader:
                     # Capitalize words for better appearance
                     clean_name = ' '.join(word.capitalize() for word in clean_name.split())
                     
-                    print(f"DEBUG: Processing image {j}: {clean_name}")
-                    print(f"DEBUG: Image embed macro: {img_info['embed']}")
-                    
-                    insert_point += f'  <h3>View {j}: {clean_name}</h3>\n'
-                    insert_point += f'  <div style="text-align: center;">\n'
+                    # Create a well-formatted image section
+                    insert_point += f'<div style="margin: 1.5em 0; padding: 1em; background: #f8f9fa; border-radius: 6px; border: 1px solid #dfe1e6;">\n'
+                    insert_point += f'  <h3 style="margin: 0 0 1em 0; color: #172B4D; font-size: 1.2em;">View {j}: {clean_name}</h3>\n'
+                    insert_point += f'  <div style="text-align: center; margin: 1em 0;">\n'
                     insert_point += f'    {img_info["embed"]}\n'
-                    insert_point += f'  </div>\n\n'
+                    insert_point += f'  </div>\n'
+                    insert_point += f'</div>\n\n'
                 
-                print(f"DEBUG: Final content length: {len(insert_point)}")
-                print(f"DEBUG: Final content ends with: {insert_point[-200:]}...")
-                logger.info(f"Embedded {len(image_embeds)} images into content for Confluence Cloud")
+                logger.info(f"Embedded {len(image_embeds)} images into content for Confluence Cloud with improved formatting")
                 return insert_point
             
             return content
             
         except Exception as e:
             logger.error(f"Error embedding images in content for Confluence Cloud: {e}")
-            print(f"DEBUG: Error in _embed_images_in_content: {e}")
             return content  # Return original content if embedding fails
+
+    def _ensure_cloud_editor_compatibility(self, content: str) -> str:
+        """Ensure content is compatible with Confluence Cloud Editor with proper formatting."""
+        try:
+            logger.info("Ensuring content compatibility with Confluence Cloud Editor")
+            
+            # Remove any legacy editor specific elements that might trigger legacy mode
+            content = content.replace('<ac:structured-macro', '<div class="macro"')
+            content = content.replace('</ac:structured-macro>', '</div>')
+            
+            # Improve HTML structure and readability
+            content = self._improve_content_structure(content)
+            
+            # Enhance document styling for better visual appeal
+            content = self._enhance_document_styling(content)
+            
+            # Ensure proper HTML structure for Cloud Editor
+            if not content.startswith('<'):
+                content = f'<div class="content">{content}</div>'
+            
+            logger.info("Content formatted for Cloud Editor compatibility with improved structure and styling")
+            return content
+            
+        except Exception as e:
+            logger.error(f"Error ensuring Cloud Editor compatibility: {e}")
+            return content  # Return original content if formatting fails
+
+    def _verify_cloud_editor_usage(self, page_id: str) -> bool:
+        """Verify that the page is using Cloud Editor."""
+        try:
+            logger.info(f"Verifying Cloud Editor usage for page: {page_id}")
+            
+            # Get the page details to check metadata
+            url = f"{self.confluence_url}/wiki/rest/api/content/{page_id}?expand=metadata.properties"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            
+            if response.status_code == 200:
+                page_data = response.json()
+                metadata = page_data.get('metadata', {}).get('properties', {})
+                
+                logger.info(f"Page metadata: {json.dumps(metadata, indent=2)}")
+                
+                # Check for Cloud Editor indicators
+                editor_version = metadata.get('editor-version', {}).get('value')
+                content_appearance = metadata.get('content-appearance', {}).get('value')
+                
+                if editor_version == '2' and content_appearance == 'fixed-width':
+                    logger.info("Page confirmed to be using Cloud Editor")
+                    return True
+                else:
+                    logger.warning(f"Page may not be using Cloud Editor. Editor version: {editor_version}, Content appearance: {content_appearance}")
+                    return False
+            else:
+                logger.error(f"Failed to verify Cloud Editor usage: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error verifying Cloud Editor usage: {e}")
+            return False
+
+    def _optimize_image_for_upload(self, image_path: str, max_size_mb: int = 5) -> str:
+        """Optimize image for upload to prevent timeouts and improve reliability."""
+        try:
+            import tempfile
+            from PIL import Image
+            
+            # Check if image is already small enough
+            file_size_mb = os.path.getsize(image_path) / (1024 * 1024)
+            if file_size_mb <= max_size_mb:
+                return image_path
+            
+            logger.info(f"Optimizing large image: {os.path.basename(image_path)} ({file_size_mb:.1f}MB)")
+            
+            # Open and optimize the image
+            with Image.open(image_path) as img:
+                # Convert to RGB if necessary
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+                
+                # Calculate new dimensions while maintaining aspect ratio
+                width, height = img.size
+                if width > 1920 or height > 1080:
+                    # Scale down large images
+                    ratio = min(1920/width, 1080/height)
+                    new_width = int(width * ratio)
+                    new_height = int(height * ratio)
+                    img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Create temporary file for optimized image
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+                temp_path = temp_file.name
+                temp_file.close()
+                
+                # Save optimized image with quality settings
+                img.save(temp_path, 'JPEG', quality=85, optimize=True)
+                
+                # Check if optimization was successful
+                optimized_size_mb = os.path.getsize(temp_path) / (1024 * 1024)
+                logger.info(f"Image optimized: {file_size_mb:.1f}MB → {optimized_size_mb:.1f}MB")
+                
+                return temp_path
+                
+        except ImportError:
+            logger.warning("PIL/Pillow not available, skipping image optimization")
+            return image_path
+        except Exception as e:
+            logger.error(f"Error optimizing image: {e}")
+            return image_path
+
+    def _improve_content_structure(self, content: str) -> str:
+        """Improve HTML content structure for better readability in Confluence."""
+        try:
+            # Split content into lines for processing
+            lines = content.split('\n')
+            improved_lines = []
+            
+            for i, line in enumerate(lines):
+                line = line.strip()
+                
+                # Skip empty lines
+                if not line:
+                    continue
+                
+                # Handle headings - keep as-is
+                if line.startswith('<h1>') or line.startswith('<h2>') or line.startswith('<h3>'):
+                    improved_lines.append(line)
+                    continue
+                
+                # Handle lists - keep as-is
+                if line.startswith('<ul>') or line.startswith('<ol>') or line.startswith('<li>') or line.startswith('</ul>') or line.startswith('</ol>') or line.startswith('</li>'):
+                    improved_lines.append(line)
+                    continue
+                
+                # Handle strong tags - keep as-is
+                if line.startswith('<strong>') or line.startswith('</strong>'):
+                    improved_lines.append(line)
+                    continue
+                
+                # Handle horizontal rules - keep as-is
+                if line.startswith('<hr/>'):
+                    improved_lines.append(line)
+                    continue
+                
+                # Handle paragraphs - keep as-is
+                if line.startswith('<p>') or line.startswith('</p>'):
+                    improved_lines.append(line)
+                    continue
+                
+                # Handle div tags - keep as-is
+                if line.startswith('<div') or line.startswith('</div>'):
+                    improved_lines.append(line)
+                    continue
+                
+                # For regular text content, wrap in paragraph tags if not already wrapped
+                if not line.startswith('<'):
+                    # Check if this line should be part of a paragraph
+                    if line and not line.startswith('<'):
+                        # If previous line was also text, add a line break
+                        if improved_lines and not improved_lines[-1].startswith('<'):
+                            improved_lines.append(f'<br/>{line}')
+                        else:
+                            improved_lines.append(f'<p>{line}</p>')
+                    else:
+                        improved_lines.append(line)
+                else:
+                    improved_lines.append(line)
+            
+            # Join lines back together
+            improved_content = '\n'.join(improved_lines)
+            
+            # Add proper spacing between sections
+            improved_content = improved_content.replace('</h2>\n<h3>', '</h2>\n\n<h3>')
+            improved_content = improved_content.replace('</h3>\n<p>', '</h3>\n\n<p>')
+            improved_content.replace('</p>\n<p>', '</p>\n\n<p>')
+            
+            # Ensure proper paragraph structure for text blocks
+            # Find text blocks that aren't wrapped in paragraphs and wrap them
+            import re
+            
+            # Simple pattern to find text that's not in HTML tags (avoiding complex look-behind)
+            # Process line by line instead of using complex regex
+            improved_lines = []
+            for line in improved_content.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # If line contains text but doesn't start with HTML tag, wrap it
+                if line and not line.startswith('<') and not line.startswith('</') and len(line) > 10:
+                    # Check if it's not already wrapped
+                    if not (line.startswith('<p>') and line.endswith('</p>')):
+                        improved_lines.append(f'<p>{line}</p>')
+                    else:
+                        improved_lines.append(line)
+                else:
+                    improved_lines.append(line)
+            
+            improved_content = '\n'.join(improved_lines)
+            
+            # Clean up any double paragraph tags
+            improved_content = improved_content.replace('<p><p>', '<p>')
+            improved_content = improved_content.replace('</p></p>', '</p>')
+            
+            # Add proper spacing between major sections
+            improved_content = improved_content.replace('</h2>', '</h2>\n')
+            improved_content = improved_content.replace('</h3>', '</h3>\n')
+            
+            logger.info("Content structure improved for better readability")
+            return improved_content
+            
+        except Exception as e:
+            logger.error(f"Error improving content structure: {e}")
+            return content  # Return original content if improvement fails
+
+    def _enhance_document_styling(self, content: str) -> str:
+        """Enhance document styling for better visual appeal in Confluence."""
+        try:
+            # Enhance heading styles for better visual hierarchy
+            content = content.replace('<h1>', '<h1 style="color: #172B4D; font-size: 2.5em; font-weight: 700; margin: 1.5em 0 1em 0; padding-bottom: 0.5em; border-bottom: 3px solid #0052CC;">')
+            content = content.replace('<h2>', '<h2 style="color: #172B4D; font-size: 1.8em; font-weight: 600; margin: 1.5em 0 1em 0; padding-left: 0.5em; border-left: 4px solid #0052CC;">')
+            content = content.replace('<h3>', '<h3 style="color: #172B4D; font-size: 1.4em; font-weight: 600; margin: 1.2em 0 0.8em 0; color: #42526E;">')
+            
+            # Enhance paragraph styling for better readability
+            content = content.replace('<p>', '<p style="line-height: 1.6; margin-bottom: 1em; color: #42526E; text-align: justify;">')
+            
+            # Enhance list styling
+            content = content.replace('<ul>', '<ul style="margin: 1em 0 1em 2em; line-height: 1.6;">')
+            content = content.replace('<ol>', '<ol style="margin: 1em 0 1em 2em; line-height: 1.6;">')
+            content = content.replace('<li>', '<li style="margin-bottom: 0.5em; color: #42526E;">')
+            
+            # Enhance strong tag styling
+            content = content.replace('<strong>', '<strong style="color: #172B4D; font-weight: 600;">')
+            
+            # Add spacing between sections
+            content = content.replace('</h2>', '</h2>\n<div style="margin: 1em 0;"></div>')
+            content = content.replace('</h3>', '</h3>\n<div style="margin: 0.8em 0;"></div>')
+            
+            # Add subtle background to key sections
+            content = content.replace('<h2 style="color: #172B4D; font-size: 1.8em; font-weight: 600; margin: 1.5em 0 1em 0; padding-left: 0.5em; border-left: 4px solid #0052CC;">', 
+                                   '<h2 style="color: #172B4D; font-size: 1.8em; font-weight: 600; margin: 1.5em 0 1em 0; padding: 0.8em; padding-left: 1.2em; border-left: 4px solid #0052CC; background: linear-gradient(90deg, #f8f9fa 0%, #ffffff 100%); border-radius: 0 6px 6px 0;">')
+            
+            # Enhance the footer section
+            if '<hr/>' in content:
+                content = content.replace('<hr/>', '<hr style="margin: 2em 0; border: none; border-top: 2px solid #dfe1e6;"/>')
+            
+            # Style the footer information
+            if 'Analysis Date:' in content:
+                content = content.replace('<p><strong>Analysis Date:</strong>', '<p style="margin-top: 2em; padding: 1em; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #0052CC;"><strong style="color: #172B4D;">Analysis Date:</strong>')
+                content = content.replace('<p><strong>Images Analyzed:</strong>', '<p style="padding: 0.5em 1em; background: #f8f9fa; border-radius: 0 0 6px 6px; margin: 0;"><strong style="color: #172B4D;">Images Analyzed:</strong>')
+                content = content.replace('<p><strong>Analysis Method:</strong>', '<p style="padding: 0.5em 1em; background: #f8f9fa; border-radius: 0 0 6px 6px; margin: 0;"><strong style="color: #172B4D;">Analysis Method:</strong>')
+                content = content.replace('<p>Generated using AI analysis for GoDaddy BI team</p>', '<p style="padding: 0.5em 1em; background: #f8f9fa; border-radius: 0 0 6px 6px; margin: 0; font-style: italic; color: #6B778C;">Generated using AI analysis for GoDaddy BI team</p>')
+            
+            logger.info("Document styling enhanced for better visual appeal")
+            return content
+            
+        except Exception as e:
+            logger.error(f"Error enhancing document styling: {e}")
+            return content  # Return original content if enhancement fails
 
 
 def get_confluence_setup_guide() -> str:

@@ -53,9 +53,12 @@ logs/
 *_analysis_*.json
 dashboard_analysis_*.json
 redshift_analysis_*.json
+quicksight_analysis_*.json
+quicksight_metadata_*.json
 
 # Generated Output Files (keep folder structure but ignore generated content)
 outputs/*.md
+outputs/*.json
 outputs/dashboard_analysis_*.md
 outputs/dashboard_howto_*.md
 !outputs/.gitkeep
@@ -71,3 +74,8 @@ outputs/dashboard_howto_*.md
 debug_*.py
 test_*.py
 temp_*.py
+
+# Additional cleanup
+*.tmp
+*.temp
+.cache/

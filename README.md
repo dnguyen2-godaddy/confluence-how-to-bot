@@ -5,11 +5,61 @@ An AI-powered tool that analyzes QuickSight dashboard screenshots and generates 
 ## Features
 
 - **Image Analysis**: Upload QuickSight dashboard screenshots for AI analysis
-- **AI Analysis**: Comprehensive dashboard analysis with AWS Bedrock
-- **Documentation Generation**: Automatic creation of professional documentation
-- **Confluence Integration**: Direct publishing to Confluence with proper formatting
-- **Multi-Image Support**: Analyze multiple dashboard views simultaneously
-- **Professional Output**: Business-ready documentation for stakeholders
+- **Multi-Agent Workflow**: Sequential analysis using specialized AI agents
+- **Documentation Generation**: Create comprehensive how-to guides and user documentation
+- **Confluence Integration**: Automatically upload documentation to Confluence
+- **QuickSight API Integration**: Direct access to dashboard metadata and structure
+- **Image Optimization**: Compress and optimize images before upload
+- **Multi-Platform Support**: Windows batch files and Unix shell scripts
+
+## QuickSight API Integration 🆕
+
+The tool now includes direct integration with the AWS QuickSight API, allowing you to access dashboard metadata, structure, and technical details without relying solely on image analysis.
+
+### What You Can Access
+
+- **Dashboard Metadata**: Names, IDs, creation dates, versions, and status
+- **Structure Analysis**: Number of sheets, visuals, filters, and calculated fields
+- **Dataset Information**: Data sources, types, and relationships
+- **Technical Insights**: Complexity scores, performance considerations, and best practices
+- **Raw Definitions**: Complete JSON structure of dashboard definitions
+
+### Quick Start with QuickSight API
+
+1. **Test the API Client**:
+   ```bash
+   python test_quicksight_api.py
+   ```
+
+2. **Use the Metadata Analyzer**:
+   ```bash
+   python quicksight_metadata_analyzer.py
+   ```
+
+3. **Direct API Usage**:
+   ```python
+   from utils.quicksight_client import QuickSightClient
+   
+   # Initialize client
+   client = QuickSightClient(region_name='us-west-2', profile_name='your-profile')
+   
+   # List all dashboards
+   dashboards = client.list_dashboards()
+   
+   # Get detailed metadata for a specific dashboard
+   metadata = client.get_dashboard_metadata_summary('dashboard-id')
+   
+   # Export metadata to JSON
+   client.export_dashboard_metadata('dashboard-id')
+   ```
+
+### Benefits of API Integration
+
+- **Real-time Data**: Access current dashboard information, not just screenshots
+- **Structured Information**: Get organized metadata instead of parsing images
+- **Performance Insights**: Understand dashboard complexity and optimization opportunities
+- **Automation Ready**: Integrate with CI/CD pipelines and automated workflows
+- **Comprehensive Analysis**: Combine API data with image analysis for better insights
 
 ## Getting Started
 
@@ -36,19 +86,74 @@ An AI-powered tool that analyzes QuickSight dashboard screenshots and generates 
    # Edit .env with your credentials
    ```
 
-5. **Run the analyzer**
-   ```bash
-   python dashboard_analyzer.py
-   ```
+
+### Option 1: Using Shell Scripts (Recommended)
+
+#### For macOS/Linux:
+```bash
+# Make script executable (first time only)
+chmod +x run_dashboard_analyzer.sh
+
+# Run the dashboard analyzer
+./run_dashboard_analyzer.sh
+
+# Check environment only
+./run_dashboard_analyzer.sh --check-only
+
+# Show help
+./run_dashboard_analyzer.sh --help
+```
+
+#### For Windows:
+```cmd
+# Run the dashboard analyzer
+run_dashboard_analyzer.bat
+```
+
+### Option 2: Manual Execution
+
+#### 1. Activate Virtual Environment
+```bash
+# macOS/Linux
+source venv/bin/activate
+
+# Windows
+venv\Scripts\activate.bat
+```
+
+#### 2. Run the Program
+```bash
+python3 dashboard_analyzer.py
+```
+
+### User Experience
+
+The program provides a **seamless, single-process experience**:
+
+1. **Image Selection**: Choose one or multiple dashboard screenshots
+2. **AI Analysis**: Automatic analysis happens in the background
+3. **Documentation**: Comprehensive documentation is generated
+4. **Confluence Upload**: Optional direct upload to Confluence
+
+**No technical complexity** - users simply select images and get professional documentation!
+
+### 🔧 Technical Architecture
+
+Behind the scenes, the system uses a specialized AI workflow:
+
+- **Agent 1: Dashboard Intelligence** - Analyzes images and extracts structured data
+- **Agent 2: Documentation Architect** - Creates comprehensive documentation from analysis data
+
+The agents work sequentially and automatically, providing users with a smooth, professional experience.
 
 ## How It Works
 
-1. **📸 Upload Screenshot**: Select dashboard image from recent files or enter path
-2. **🤖 AI Analysis**: Comprehensive dashboard analysis with AWS Bedrock
+1. **Upload Screenshot**: Select dashboard image from recent files or enter path
+2. **AI Analysis**: Comprehensive dashboard analysis with AWS Bedrock
 3. **Generate Documentation**: Professional how-to guide creation
 4. **Publish to Confluence**: Automatic publishing with custom titles (optional)
 
-## 📋 Supported Formats
+## Supported Formats
 
 ### Supported Formats
 
@@ -263,7 +368,7 @@ This dashboard tracks key sales metrics and KPIs for the sales organization...
 - **AWS SSO Integration**: Seamless authentication with Okta
 - **Professional Output**: Business-ready documentation generation
 
-## 🔐 Security Best Practices
+## Security Best Practices
 
 ### Environment Variables
 - Store credentials in `.env` file (never commit to git)
@@ -271,7 +376,7 @@ This dashboard tracks key sales metrics and KPIs for the sales organization...
 - No hardcoded credentials in code
 - Follow AWS IAM best practices
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### GoDaddy Okta SSO Issues
 

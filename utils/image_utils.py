@@ -151,7 +151,7 @@ class ImageProcessor:
             return False
     
     @classmethod
-    def encode_image_to_base64(cls, image_path: str, optimize: bool = True) -> Optional[str]:
+    def encode_image_to_base64(cls, image_path: str, optimize: bool = False) -> Optional[str]:
         """Encode image file to base64 string with optional optimization."""
         try:
             # Optimize image if requested and PIL is available
@@ -169,42 +169,37 @@ class ImageProcessor:
             return None
     
     @classmethod
-    def prepare_image_for_bedrock(cls, image_path: str, optimize: bool = True) -> Optional[Dict[str, Any]]:
-        """Prepare image data for AWS Bedrock API with optional optimization."""
-        # Validate image first
-        is_valid, message = cls.validate_image_file(image_path)
-        if not is_valid:
-            logger.error(f"Image validation failed: {message}")
-            return None
-        
-        # Clean path
-        clean_path = image_path.strip().strip('"').strip("'")
-        
-        # Encode image with optimization
-        image_base64 = cls.encode_image_to_base64(clean_path, optimize=optimize)
-        if not image_base64:
-            return None
-        
-        # Get media type (use optimized image if available)
-        if optimize:
-            # Check if we have an optimized version
-            base_name = os.path.splitext(clean_path)[0]
-            for ext in ['.webp', '.jpg', '.png']:
-                optimized_path = f"{base_name}_optimized{ext}"
-                if os.path.exists(optimized_path):
-                    clean_path = optimized_path
-                    break
-        
-        media_type = cls.get_media_type(clean_path)
-        
-        return {
-            "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": media_type,
-                "data": image_base64
+    def prepare_image_for_bedrock(cls, image_path: str, optimize: bool = False) -> Optional[Dict[str, Any]]:
+        """Prepare a single image for AWS Bedrock API without optimization."""
+        try:
+            # Clean and validate the image path
+            clean_path = image_path.strip().strip('"').strip("'")
+            
+            # Validate image file
+            is_valid, message = cls.validate_image_file(clean_path)
+            if not is_valid:
+                logger.warning(f"Invalid image file: {message}")
+                return None
+            
+            # Encode image without optimization
+            image_base64 = cls.encode_image_to_base64(clean_path, optimize=False)
+            if not image_base64:
+                return None
+            
+            # Get media type from original image
+            media_type = cls.get_media_type(clean_path)
+            
+            return {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": image_base64
+                }
             }
-        }
+        except Exception as e:
+            logger.error(f"Error preparing image for Bedrock: {e}")
+            return None
     
     @classmethod
     def prepare_multiple_images_for_bedrock(cls, image_paths: List[str]) -> Tuple[List[Dict[str, Any]], List[str]]:
@@ -227,8 +222,8 @@ class ImageProcessor:
                     image_path = matches[0]
                     logger.info(f"Resolved path to: {image_path}")
             
-            # Prepare image data with optimization enabled by default
-            image_data = cls.prepare_image_for_bedrock(image_path, optimize=True)
+            # Prepare image data with optimization disabled by default
+            image_data = cls.prepare_image_for_bedrock(image_path, optimize=False)
             if image_data:
                 image_data_list.append(image_data)
                 valid_image_paths.append(image_path.strip().strip('"').strip("'"))

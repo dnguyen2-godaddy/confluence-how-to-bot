@@ -65,6 +65,11 @@ class Config:
         return os.getenv('AWS_PROFILE')
     
     @property
+    def aws_default_profile(self) -> str:
+        """Get default AWS profile for SSO authentication."""
+        return os.getenv('AWS_DEFAULT_PROFILE', 'g-aws-usa-gd-aisummerca-dev-private-poweruser')
+    
+    @property
     def openai_api_key(self) -> Optional[str]:
         """Get OpenAI API key from environment."""
         return os.getenv('OPENAI_API_KEY')
