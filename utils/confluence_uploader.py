@@ -67,7 +67,7 @@ class ConfluenceUploader:
         elif self.confluence_url:
             wiki_url = self.confluence_url
         else:
-            wiki_url = 'http://localhost/wiki/'  # Fallback for testing
+            wiki_url = 'https://your-company.atlassian.net/wiki/'  # Fallback for testing
         
         # Use the newer Confluence Cloud API v2 for better Cloud Editor support
         self.api_base = urljoin(wiki_url, 'rest/api/')
