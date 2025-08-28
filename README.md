@@ -8,58 +8,11 @@ An AI-powered tool that analyzes QuickSight dashboard screenshots and generates 
 - **Multi-Agent Workflow**: Sequential analysis using specialized AI agents
 - **Documentation Generation**: Create comprehensive how-to guides and user documentation
 - **Confluence Integration**: Automatically upload documentation to Confluence
-- **QuickSight API Integration**: Direct access to dashboard metadata and structure
+- **Image Analysis**: Upload QuickSight dashboard screenshots for AI analysis
 - **Image Optimization**: Compress and optimize images before upload
 - **Multi-Platform Support**: Windows batch files and Unix shell scripts
 
-## QuickSight API Integration 🆕
 
-The tool now includes direct integration with the AWS QuickSight API, allowing you to access dashboard metadata, structure, and technical details without relying solely on image analysis.
-
-### What You Can Access
-
-- **Dashboard Metadata**: Names, IDs, creation dates, versions, and status
-- **Structure Analysis**: Number of sheets, visuals, filters, and calculated fields
-- **Dataset Information**: Data sources, types, and relationships
-- **Technical Insights**: Complexity scores, performance considerations, and best practices
-- **Raw Definitions**: Complete JSON structure of dashboard definitions
-
-### Quick Start with QuickSight API
-
-1. **Test the API Client**:
-   ```bash
-   python test_quicksight_api.py
-   ```
-
-2. **Use the Metadata Analyzer**:
-   ```bash
-   python quicksight_metadata_analyzer.py
-   ```
-
-3. **Direct API Usage**:
-   ```python
-   from utils.quicksight_client import QuickSightClient
-   
-   # Initialize client
-   client = QuickSightClient(region_name='us-west-2', profile_name='your-profile')
-   
-   # List all dashboards
-   dashboards = client.list_dashboards()
-   
-   # Get detailed metadata for a specific dashboard
-   metadata = client.get_dashboard_metadata_summary('dashboard-id')
-   
-   # Export metadata to JSON
-   client.export_dashboard_metadata('dashboard-id')
-   ```
-
-### Benefits of API Integration
-
-- **Real-time Data**: Access current dashboard information, not just screenshots
-- **Structured Information**: Get organized metadata instead of parsing images
-- **Performance Insights**: Understand dashboard complexity and optimization opportunities
-- **Automation Ready**: Integrate with CI/CD pipelines and automated workflows
-- **Comprehensive Analysis**: Combine API data with image analysis for better insights
 
 ## Getting Started
 

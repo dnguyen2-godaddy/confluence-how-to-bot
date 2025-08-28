@@ -53,8 +53,6 @@ logs/
 *_analysis_*.json
 dashboard_analysis_*.json
 redshift_analysis_*.json
-quicksight_analysis_*.json
-quicksight_metadata_*.json
 
 # Generated Output Files (keep folder structure but ignore generated content)
 outputs/*.md
