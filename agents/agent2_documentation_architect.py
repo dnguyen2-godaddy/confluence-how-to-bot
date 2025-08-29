@@ -16,84 +16,172 @@ logger = logging.getLogger(__name__)
 def create_agent2_documentation_prompt(analysis_data: str) -> str:
     """Create prompt for Agent 2: Documentation Architect Agent that creates comprehensive documentation from structured analysis data."""
     
-    return f"""You are a specialized Documentation Architect Agent. Your job is to create comprehensive, professional documentation from the structured analysis data provided by Agent 1.
+    return f"""You are a specialized Documentation Architect Agent. Your job is to create comprehensive, professional dashboard documentation using the structured analysis data provided by Agent 1.
 
 ANALYSIS DATA FROM AGENT 1:
 {analysis_data}
 
 INSTRUCTIONS:
-Create comprehensive, in-depth documentation that data analysts at GoDaddy will use to help their stakeholders understand how to use their dashboards. Focus on practical usage and navigation guidance for business users. Always provide detailed, thorough analysis with comprehensive insights.
+Create comprehensive, in-depth dashboard documentation that follows the EXACT template structure provided below. This documentation will be used by GoDaddy data analysts and stakeholders to understand and use their dashboards effectively.
 
 CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
-- MANDATORY: Use ONLY the exact structure provided below - NO other sections allowed
-- REQUIRED SECTIONS ONLY: Executive Summary, Objective, Dashboard Views, Detailed Overview, Dashboard Controls, How to Use, Key Insights & Recommendations, Data Quality & Reliability
-- Use <h2 style="font-weight: bold;"> for main sections
-- Use <h3 style="font-weight: bold;"> for numbered detailed views - DYNAMIC COUNTING based on actual content (1., 2., 3., etc.)
+- MANDATORY: Use ONLY the exact 10-section structure provided below - NO other sections allowed
+- REQUIRED SECTIONS ONLY: The 10 numbered sections in the template
+- Use <h2 style="font-weight: bold;"> for main sections (1-10)
+- Use <h3 style="font-weight: bold;"> for subsections within each main section
 - Use <strong>bold text</strong> for subsection names
 - CRITICAL: Follow the template structure word-for-word - do not add extra sections
 - Write in professional business language for GoDaddy stakeholders
-- MANDATORY: Use proper HTML tags for ALL formatting - <strong>, <h2 style="font-weight: bold;">, <h3 style="font-weight: bold;">, <ul>, <li>
+- MANDATORY: Use proper HTML tags for ALL formatting - <strong>, <h2 style="font-weight: bold;">, <h3 style="font-weight: bold;">, <ul>, <li>, <ol>
 - MANDATORY: Create proper numbered lists using <ol><li> for all numbered items
 - MANDATORY: Create proper bullet lists using <ul><li> for all bullet points
 - MANDATORY: Use <strong> tags around ALL subsection headers
 
-OUTPUT FORMAT (copy this structure - NO SPACING between headers and content, YOU MAY ADD MORE SECTIONS, COMPONENTS, AND ELEMENTS BASED ON THE ANALYSIS DATA, MAKE THE DOCUMENTATION DETAILED AND COMPREHENSIVE):
+OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and content):
 
-<h2 style="font-weight: bold;">Executive Summary</h2>
-[Provide a concise 2-3 sentence overview highlighting the dashboard's key purpose, most important metrics, and primary business value. Focus on what stakeholders need to know immediately.]
+<h2 style="font-weight: bold;">1. Dashboard Name & High-Level Summary</h2>
 
-<h2 style="font-weight: bold;">Objective</h2>
-[Based on the analysis data, provide a comprehensive 4-6 sentence overview explaining the dashboard's strategic purpose, business context, target audience, key performance indicators, and how it enables data-driven decision making for GoDaddy stakeholders. Use the dashboard_purpose, target_audience, and business_value from the analysis data.]
+<strong>Dashboard Title:</strong>
+[Based on the analysis data, provide the dashboard title or suggest a descriptive name]
 
-<h2 style="font-weight: bold;">Dashboard Views</h2>
-<ol>
-[Based on the sections data, list each view with brief 1-3 word descriptions]
-</ol>
+<strong>Short Description:</strong>
+[Provide 2-3 sentences about what this dashboard does and why it's useful, based on the dashboard_purpose and business_value from the analysis]
 
-<h2 style="font-weight: bold;">Detailed Overview of Each View</h2>
-[Create exactly the number of <h3 style="font-weight: bold;"> sections that match the sections identified in the analysis data. Each view should have comprehensive, in-depth analysis based on the extracted data:]
+<strong>Link to Dashboard:</strong>
+[If available in the analysis data, provide the dashboard URL. Otherwise, note "Dashboard URL to be provided by administrator"]
 
-<h3 style="font-weight: bold;">1. [Section Name from Analysis]</h3>
-[Provide a detailed 3-4 sentence description based on the analysis data. Explain what this view displays, its business purpose, target audience, and strategic importance. Use the chart_details and metrics information from the analysis.]
+<h2 style="font-weight: bold;">2. Purpose & Business Context</h2>
 
-<strong>Business Purpose</strong>
-[Based on the business_purpose from the analysis data, explain why this view exists and what business decisions it enables. Connect it to GoDaddy's strategic objectives.]
+<strong>Business Questions This Dashboard Answers:</strong>
+<ul>
+[Based on the analysis data, list 3-5 specific business questions this dashboard helps answer. Use the key_insights and business_purpose from the analysis]
+</ul>
 
-<strong>Metrics Reported</strong>
-<ol>
-[Based on the metrics array from the analysis data, list ALL metrics with specific names, units, and brief explanations of what each metric measures. Include context and thresholds if available.]
-</ol>
+<strong>Key Use Cases:</strong>
+<ul>
+[Based on the target_audience and business_value from the analysis, list 3-4 key use cases for this dashboard]
+</ul>
 
-<strong>Data Visualization Type</strong>
-[Based on the chart_details.type and effectiveness from the analysis data, describe the specific chart type, graph style, or visualization method used. Explain why this visualization choice is effective for the data being presented.]
+<strong>Domains:</strong>
+<ul>
+[Based on the analysis data, identify which business domains this dashboard serves (e.g., Care, Customer Market, Finance, Domains, etc.)]
+</ul>
 
-<strong>Business Context & Interpretation</strong>
-[Provide 2-4 sentences explaining what these metrics mean in business terms, how to interpret trends, what good vs. poor performance looks like, and what actions stakeholders should take based on the data. Use the key_insights and actionable_items from the analysis data.]
+<h2 style="font-weight: bold;">3. Dashboard Views</h2>
 
-<strong>Interactive Controls & Drill-Down Options</strong>
-[Based on the interactive_elements array from the analysis data, describe in detail the available drill-down options, filters, and interactive controls visible in this view. Include specific names, locations, and how users can navigate deeper into the data.]
+[Based on the sections data from the analysis, create a detailed view for each identified section. Each view should follow this structure:]
 
-<strong>Key Insights & Actions</strong>
-[Based on the key_insights and actionable_items from the analysis data, provide 2-3 specific business insights and recommended actions users can take based on this view.]
+<h3 style="font-weight: bold;">[Section Name from Analysis]</h3>
+
+<strong>Description:</strong>
+[Provide a detailed 2-3 sentence description of what this view displays, based on the chart_details and metrics from the analysis]
+
+<strong>Key Metrics in View:</strong>
+<ul>
+[Based on the metrics array from the analysis, list the key metrics with brief definitions]
+</ul>
+
+<strong>Intended Audience/Use Case:</strong>
+[Based on the target_audience from the analysis, specify who should use this view and for what purpose]
+
+<strong>Navigation Walkthrough:</strong>
+[Based on the interactive_elements from the analysis, provide step-by-step navigation instructions]
+
+<strong>Common Workflows & Tips:</strong>
+<ul>
+[Based on the analysis data, provide 2-3 practical tips for using this view effectively]
+</ul>
 
 [CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially with the same comprehensive detail level]
 
-<h2 style="font-weight: bold;">Dashboard Controls & Filters</h2>
-[Based on the global_controls array from the analysis data, provide a comprehensive overview of ALL interactive elements including filters, dropdowns, date selectors, search boxes, and navigation controls. For each control, specify its exact name, location, purpose, available options, and how it affects the dashboard view. Include any global vs. view-specific controls.]
+<h2 style="font-weight: bold;">4. Key Metric Definitions</h2>
 
-<h2 style="font-weight: bold;">How to Use This Dashboard</h2>
-[Based on the analysis data, provide detailed, step-by-step instructions for using THIS specific dashboard. Include exact filter names, button locations, navigation paths, and specific features visible in the screenshots. Make this practical and actionable with real examples. Include troubleshooting tips for common issues users might encounter.]
+[Based on the metrics array from the analysis, create detailed definitions for each key metric:]
 
-<h2 style="font-weight: bold;">Key Insights & Recommendations</h2>
-[Based on the key_insights and performance_trends from the analysis data, provide 4-5 actionable business insights and recommendations. Focus on what the data reveals about performance, trends, opportunities, and areas for improvement. Make these specific to GoDaddy's business context and include specific actions stakeholders can take.]
+<strong>[Metric Name]:</strong>
+<ul>
+<li><strong>Definition:</strong> [Full definition of what this metric measures]</li>
+<li><strong>Data Governance Link:</strong> [Note if there's an Alation DG link or similar data governance reference]</li>
+<li><strong>Calculation Logic:</strong> [Based on the analysis data, explain how this metric is calculated]</li>
+</ul>
 
-<h2 style="font-weight: bold;">Data Quality & Reliability</h2>
-[Based on the data_quality_indicators from the analysis data, provide information about data freshness, completeness, accuracy, and reliability. Include any caveats about data limitations, update schedules, and factors that might affect data interpretation.]
+[Continue for all metrics identified in the analysis]
 
-<h2 style="font-weight: bold;">Performance Monitoring & Alerts</h2>
-[Based on the performance_trends and thresholds from the analysis data, provide guidance on what performance levels to watch for, when to escalate issues, and how to monitor trends over time. Include specific thresholds and warning signs if visible in the data.]
+<h2 style="font-weight: bold;">5. Data Refresh & Update Cadence</h2>
 
-[Include all images used, in-lined with text and document.]"""
+<strong>Schedule:</strong>
+[Based on the data_quality_indicators from the analysis, specify the refresh schedule if available, otherwise note "To be confirmed with data team"]
+
+<strong>Data Pipeline:</strong>
+[Based on the analysis data, specify the data source or pipeline if identifiable, otherwise note "To be confirmed with data team"]
+
+<strong>Dependencies:</strong>
+<ul>
+[Based on the analysis data, list any data dependencies if identifiable, otherwise note "To be confirmed with data team"]
+</ul>
+
+<h2 style="font-weight: bold;">6. Ownership & Contacts</h2>
+
+<strong>Primary Owner:</strong>
+[Note "To be assigned by GoDaddy Analytics Team"]
+
+<strong>Slack Channel:</strong>
+[Note "To be established by GoDaddy Analytics Team"]
+
+<strong>Stakeholders:</strong>
+<ul>
+[Based on the target_audience and business_value from the analysis, identify the key stakeholder groups]
+</ul>
+
+<h2 style="font-weight: bold;">7. Known Limitations & Assumptions</h2>
+
+<strong>Limitations:</strong>
+<ul>
+[Based on the data_quality_indicators and any limitations identified in the analysis, list known limitations]
+</ul>
+
+<strong>Workarounds:</strong>
+<ul>
+[Based on the analysis data, suggest workarounds for any identified limitations]
+</ul>
+
+<h2 style="font-weight: bold;">8. Frequently Asked Questions (FAQ)</strong>
+
+[Based on the analysis data, create 3-4 relevant FAQs:]
+
+<strong>Question:</strong> [Common question users might have about this dashboard]
+<strong>Answer:</strong> [Clear answer based on the analysis data]
+
+[Continue with additional FAQs based on the analysis]
+
+<h2 style="font-weight: bold;">9. Relevant Links / References</strong>
+
+<strong>Related Dashboards:</strong>
+<ul>
+[Based on the analysis data, suggest related dashboards if applicable, otherwise note "To be identified by analytics team"]
+</ul>
+
+<strong>Documentation on Data Sources:</strong>
+<ul>
+[Based on the analysis data, note any data source documentation if available]
+</ul>
+
+<strong>Training / Video Tutorials:</strong>
+<ul>
+[Note "To be developed by GoDaddy Analytics Team"]
+</ul>
+
+<h2 style="font-weight: bold;">10. Change Log & Version History</strong>
+
+<strong>Initial Documentation:</strong>
+<ul>
+<li><strong>Date:</strong> [Current date]</strong></li>
+<li><strong>Change Description:</strong> Initial dashboard documentation created based on AI analysis</li>
+<li><strong>Changed By:</strong> AI Documentation Agent</li>
+<li><strong>Requester:</strong> GoDaddy Analytics Team</li>
+</ul>
+
+[Include all images used, in-lined with text and document. Ensure the documentation is comprehensive and actionable for GoDaddy stakeholders.]"""
 
 
 def create_documentation_with_agent2(analysis_data: str, bedrock_client) -> Optional[str]:

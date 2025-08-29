@@ -7,12 +7,35 @@ An AI-powered tool that analyzes QuickSight dashboard screenshots and generates 
 - **Image Analysis**: Upload QuickSight dashboard screenshots for AI analysis
 - **Multi-Agent Workflow**: Sequential analysis using specialized AI agents
 - **Documentation Generation**: Create comprehensive how-to guides and user documentation
+- **Professional Templates**: Industry-standard 10-section dashboard documentation template
 - **Confluence Integration**: Automatically upload documentation to Confluence
-- **Image Analysis**: Upload QuickSight dashboard screenshots for AI analysis
 - **Image Optimization**: Compress and optimize images before upload
 - **Multi-Platform Support**: Windows batch files and Unix shell scripts
 
+## Documentation Template
 
+The tool now generates documentation using a **comprehensive 10-section template** that follows industry best practices:
+
+### **Template Sections:**
+1. **Dashboard Name & High-Level Summary** - Title, description, and URL
+2. **Purpose & Business Context** - Business questions, use cases, and domains
+3. **Dashboard Views** - Detailed breakdown of each view with metrics and navigation
+4. **Key Metric Definitions** - Comprehensive metric explanations and data governance links
+5. **Data Refresh & Update Cadence** - Schedule, pipeline, and dependencies
+6. **Ownership & Contacts** - Primary owner, Slack channels, and stakeholders
+7. **Known Limitations & Assumptions** - Current limitations and workarounds
+8. **Frequently Asked Questions (FAQ)** - Common questions and answers for RAG systems
+9. **Relevant Links / References** - Related dashboards and documentation
+10. **Change Log & Version History** - Track changes and maintain documentation history
+
+### **Template Benefits:**
+- **Professional Structure** - Industry-standard documentation format
+- **RAG-Ready** - FAQ section optimized for retrieval-augmented generation
+- **Stakeholder-Friendly** - Clear sections for different audience types
+- **Maintainable** - Change log and version history tracking
+- **Actionable** - Specific guidance for dashboard usage
+
+A standalone template file (`dashboard_documentation_template.md`) is also provided for manual documentation creation.
 
 ## Getting Started
 
