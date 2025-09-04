@@ -21,8 +21,16 @@ def create_agent2_documentation_prompt(analysis_data: str) -> str:
 ANALYSIS DATA FROM AGENT 1:
 {analysis_data}
 
-INSTRUCTIONS:
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
 Create comprehensive, in-depth dashboard documentation that follows the EXACT template structure provided below. This documentation will be used by GoDaddy data analysts and stakeholders to understand and use their dashboards effectively.
+
+MANDATORY REQUIREMENTS - VIOLATION WILL RESULT IN INCOMPLETE DOCUMENTATION:
+- CRITICAL: Generate COMPLETE documentation for ALL 10 sections - NO EXCEPTIONS
+- CRITICAL: NEVER use placeholders like "[Additional metrics continued...]" or "[Continued with remaining sections...]"
+- CRITICAL: NEVER use notes like "[Note: I've provided a partial response due to length limitations...]"
+- CRITICAL: Complete EVERY section fully before moving to the next
+- CRITICAL: If you hit token limits, prioritize completing all sections over detailed explanations
+- CRITICAL: Generate ALL metrics, ALL views, ALL business questions - COMPLETE LISTS ONLY
 
 CRITICAL FORMATTING REQUIREMENTS - FOLLOW EXACTLY:
 - MANDATORY: Use ONLY the exact 10-section structure provided below - NO other sections allowed
@@ -54,22 +62,22 @@ OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and conten
 
 <strong>Business Questions This Dashboard Answers:</strong>
 <ul>
-[Based on the analysis data, list 3-5 specific business questions this dashboard helps answer. Use the key_insights and business_purpose from the analysis]
+[Based on the analysis data, list 3-5 specific business questions this dashboard helps answer. Use the key_insights and business_purpose from the analysis. COMPLETE ALL QUESTIONS - NO PLACEHOLDERS]
 </ul>
 
 <strong>Key Use Cases:</strong>
 <ul>
-[Based on the target_audience and business_value from the analysis, list 3-4 key use cases for this dashboard]
+[Based on the target_audience and business_value from the analysis, list 3-4 key use cases for this dashboard. COMPLETE ALL USE CASES - NO PLACEHOLDERS]
 </ul>
 
 <strong>Domains:</strong>
 <ul>
-[Based on the analysis data, identify which business domains this dashboard serves (e.g., Care, Customer Market, Finance, Domains, etc.)]
+[Based on the analysis data, identify which business domains this dashboard serves (e.g., Care, Customer Market, Finance, Domains, etc.). COMPLETE ALL DOMAINS - NO PLACEHOLDERS]
 </ul>
 
 <h2 style="font-weight: bold;">3. Dashboard Views</h2>
 
-[Based on the sections data from the analysis, create a detailed view for each identified section. Each view should follow this structure:]
+[Based on the sections data from the analysis, create a detailed view for each identified section. Each view should follow this structure. COMPLETE ALL VIEWS - NO PLACEHOLDERS:]
 
 <h3 style="font-weight: bold;">[Section Name from Analysis]</h3>
 
@@ -78,7 +86,7 @@ OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and conten
 
 <strong>Key Metrics in View:</strong>
 <ul>
-[Based on the metrics array from the analysis, list the key metrics with brief definitions]
+[Based on the metrics array from the analysis, list the key metrics with brief definitions. COMPLETE ALL METRICS - NO PLACEHOLDERS]
 </ul>
 
 <strong>Intended Audience/Use Case:</strong>
@@ -89,14 +97,14 @@ OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and conten
 
 <strong>Common Workflows & Tips:</strong>
 <ul>
-[Based on the analysis data, provide 2-3 practical tips for using this view effectively]
+[Based on the analysis data, provide 2-3 practical tips for using this view effectively. COMPLETE ALL TIPS - NO PLACEHOLDERS]
 </ul>
 
-[CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially with the same comprehensive detail level]
+[CONTINUE WITH ADDITIONAL VIEWS - Create exactly the number you identified, numbered sequentially with the same comprehensive detail level. COMPLETE ALL VIEWS - NO PLACEHOLDERS]
 
 <h2 style="font-weight: bold;">4. Key Metric Definitions</h2>
 
-[Based on the metrics array from the analysis, create detailed definitions for each key metric:]
+[Based on the metrics array from the analysis, create detailed definitions for each key metric. COMPLETE ALL METRICS - NO PLACEHOLDERS:]
 
 <strong>[Metric Name]:</strong>
 <ul>
@@ -105,7 +113,7 @@ OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and conten
 <li><strong>Calculation Logic:</strong> [Based on the analysis data, explain how this metric is calculated]</li>
 </ul>
 
-[Continue for all metrics identified in the analysis]
+[Continue for all metrics identified in the analysis. COMPLETE ALL METRICS - NO PLACEHOLDERS]
 
 <h2 style="font-weight: bold;">5. Data Refresh & Update Cadence</h2>
 
@@ -117,7 +125,7 @@ OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and conten
 
 <strong>Dependencies:</strong>
 <ul>
-[Based on the analysis data, list any data dependencies if identifiable, otherwise note "To be confirmed with data team"]
+[Based on the analysis data, list any data dependencies if identifiable, otherwise note "To be confirmed with data team". COMPLETE ALL DEPENDENCIES - NO PLACEHOLDERS]
 </ul>
 
 <h2 style="font-weight: bold;">6. Ownership & Contacts</h2>
@@ -130,40 +138,40 @@ OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and conten
 
 <strong>Stakeholders:</strong>
 <ul>
-[Based on the target_audience and business_value from the analysis, identify the key stakeholder groups]
+[Based on the target_audience and business_value from the analysis, identify the key stakeholder groups. COMPLETE ALL STAKEHOLDERS - NO PLACEHOLDERS]
 </ul>
 
 <h2 style="font-weight: bold;">7. Known Limitations & Assumptions</h2>
 
 <strong>Limitations:</strong>
 <ul>
-[Based on the data_quality_indicators and any limitations identified in the analysis, list known limitations]
+[Based on the data_quality_indicators and any limitations identified in the analysis, list known limitations. COMPLETE ALL LIMITATIONS - NO PLACEHOLDERS]
 </ul>
 
 <strong>Workarounds:</strong>
 <ul>
-[Based on the analysis data, suggest workarounds for any identified limitations]
+[Based on the analysis data, suggest workarounds for any identified limitations. COMPLETE ALL WORKAROUNDS - NO PLACEHOLDERS]
 </ul>
 
 <h2 style="font-weight: bold;">8. Frequently Asked Questions (FAQ)</strong>
 
-[Based on the analysis data, create 3-4 relevant FAQs:]
+[Based on the analysis data, create 3-4 relevant FAQs. COMPLETE ALL FAQS - NO PLACEHOLDERS:]
 
 <strong>Question:</strong> [Common question users might have about this dashboard]
 <strong>Answer:</strong> [Clear answer based on the analysis data]
 
-[Continue with additional FAQs based on the analysis]
+[Continue with additional FAQs based on the analysis. COMPLETE ALL FAQS - NO PLACEHOLDERS]
 
 <h2 style="font-weight: bold;">9. Relevant Links / References</strong>
 
 <strong>Related Dashboards:</strong>
 <ul>
-[Based on the analysis data, suggest related dashboards if applicable, otherwise note "To be identified by analytics team"]
+[Based on the analysis data, suggest related dashboards if applicable, otherwise note "To be identified by analytics team". COMPLETE ALL REFERENCES - NO PLACEHOLDERS]
 </ul>
 
 <strong>Documentation on Data Sources:</strong>
 <ul>
-[Based on the analysis data, note any data source documentation if available]
+[Based on the analysis data, note any data source documentation if available. COMPLETE ALL REFERENCES - NO PLACEHOLDERS]
 </ul>
 
 <strong>Training / Video Tutorials:</strong>
@@ -171,7 +179,7 @@ OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and conten
 [Note "To be developed by GoDaddy Analytics Team"]
 </ul>
 
-<h2 style="font-weight: bold;">10. Change Log & Version History</strong>
+<h2 style="font-weight: bold;">10. Change Log & Version History</h2>
 
 <strong>Initial Documentation:</strong>
 <ul>
@@ -181,7 +189,14 @@ OUTPUT FORMAT - COPY THIS EXACT STRUCTURE (NO SPACING between headers and conten
 <li><strong>Requester:</strong> GoDaddy Analytics Team</li>
 </ul>
 
-[Include all images used, in-lined with text and document. Ensure the documentation is comprehensive and actionable for GoDaddy stakeholders.]"""
+[Include all images used, in-lined with text and document. Ensure the documentation is comprehensive and actionable for GoDaddy stakeholders.]
+
+FINAL CRITICAL INSTRUCTIONS:
+- COMPLETE ALL 10 SECTIONS FULLY
+- NO PLACEHOLDERS, NO INCOMPLETE SECTIONS, NO "CONTINUED..." NOTES
+- IF YOU HIT TOKEN LIMITS, PRIORITIZE COMPLETING ALL SECTIONS OVER DETAILED EXPLANATIONS
+- GENERATE COMPLETE, PRODUCTION-READY DOCUMENTATION
+- CRITICAL: Output ONLY the HTML documentation. No explanations, no conversational text, no "I'll create..." statements. Just the pure HTML content starting with <h1>."""
 
 
 def create_documentation_with_agent2(analysis_data: str, bedrock_client) -> Optional[str]:
@@ -198,7 +213,7 @@ def create_documentation_with_agent2(analysis_data: str, bedrock_client) -> Opti
         
         body = {
             "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 8000,
+            "max_tokens": 16000,
             "messages": messages,
             "temperature": 0.1
         }

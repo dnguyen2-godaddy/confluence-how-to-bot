@@ -162,6 +162,7 @@ def analyze_dashboard_images_multi_agent(image_paths: List[str], dashboard_name:
         
         # Step 2: Agent 2 - Documentation Creation
         print("Creating comprehensive documentation...")
+        print("   This may take 1-2 minutes for detailed documentation...")
         documentation_text = create_documentation_with_agent2(analysis_data, get_bedrock_client())
         
         if not documentation_text:
@@ -172,6 +173,14 @@ def analyze_dashboard_images_multi_agent(image_paths: List[str], dashboard_name:
         
         # Step 3: Process and save final documentation
         print("Finalizing documentation...")
+        
+        # Remove conversational text that might slip through
+        if documentation_text.startswith("I'll create") or "I'll create" in documentation_text[:200]:
+            # Find the first HTML tag
+            import re
+            html_start = re.search(r'<h[1-6]', documentation_text)
+            if html_start:
+                documentation_text = documentation_text[html_start.start():]
         
         # Remove extra spacing after header tags
         documentation_text = documentation_text.replace('<h2>Objective</h2>\n\n', '<h2>Objective</h2>\n')
@@ -622,6 +631,7 @@ def main():
         # Start analysis
         print("Starting AI analysis...")
         print("This may take a few minutes depending on the number and size of images.")
+        print("Agent 2 (Documentation generation) typically takes 1-2 minutes for comprehensive output.")
         print()
         
         print("Phase 1: Analyzing dashboard images...")
